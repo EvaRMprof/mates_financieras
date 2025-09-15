@@ -34,7 +34,7 @@ Donde:
 ## Cómo usar la calculadora
 
 1.  **Accede a la calculadora:** Visita la página web de este proyecto en:
-    [https://[tu-cuenta-github].github.io/[nombre-del-repositorio]/calculadora_valor_inflacion.html](https://evarmprof.github.io/mates_financieras/calculadora_valor_inflacion.html)
+    [https://evarmprof.github.io/mates_financieras/calculadora_valor_inflacion.html](https://evarmprof.github.io/mates_financieras/calculadora_valor_inflacion.html)
 
 
 2.  **Ingresa los datos:**
