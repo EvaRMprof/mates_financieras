@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora del Valor Actual</title>
+    <!-- Incluye Tailwind CSS directamente para que sea autocontenido -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl p-6 md:p-10 w-full max-w-2xl transform transition-all duration-300">
+        <h1 class="text-3xl font-bold text-gray-800 text-center mb-2">El Poder Adquisitivo del Dinero</h1>
+        <p class="text-gray-600 text-center mb-8">Usa esta herramienta para visualizar cómo la inflación reduce el valor real del dinero con el tiempo.</p>
+
+        <div class="grid md:grid-cols-2 gap-6">
+            <!-- Sección de entrada de datos -->
+            <div class="bg-red-50 p-6 rounded-lg shadow-inner">
+                <div class="mb-6">
+                    <label for="principal" class="block text-sm font-semibold text-gray-700 mb-1">Cantidad Nominal (€)</label>
+                    <input type="number" id="principal" value="1000" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 transition-colors duration-200">
+                </div>
+                <div class="mb-6">
+                    <label for="inflation" class="block text-sm font-semibold text-gray-700 mb-1">Tasa de Inflación Anual (%)</label>
+                    <input type="number" id="inflation" value="3.5" step="0.1" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 transition-colors duration-200">
+                </div>
+                <div>
+                    <label for="years" class="block text-sm font-semibold text-gray-700 mb-1">Número de Años</label>
+                    <input type="number" id="years" value="10" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 transition-colors duration-200">
+                </div>
+            </div>
+
+            <!-- Sección de resultados -->
+            <div class="bg-yellow-50 p-6 rounded-lg shadow-inner flex flex-col justify-between">
+                <div>
+                    <div class="mb-6">
+                        <p class="text-sm font-semibold text-gray-700 mb-1">Poder Adquisitivo Futuro</p>
+                        <p id="future-value" class="text-4xl md:text-5xl font-extrabold text-red-700 transition-transform duration-300">€0.00</p>
+                    </div>
+                    <div class="border-t border-gray-300 pt-4">
+                        <p class="text-sm font-semibold text-gray-700 mb-1">Pérdida de Valor</p>
+                        <p id="loss" class="text-2xl font-bold text-red-600 transition-colors duration-300">€0.00</p>
+                    </div>
+                </div>
+                <button onclick="calculateInflation()" class="mt-8 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-full shadow-lg transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-red-500">
+                    Calcular
+                </button>
+            </div>
+        </div>
+
+        <!-- Sección de explicación -->
+        <div class="mt-10 p-6 bg-gray-50 rounded-lg shadow-inner">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">La Lección Clave</h2>
+            <p class="text-gray-700 leading-relaxed mb-4" id="explanation-text">
+                La **inflación** representa la pérdida del poder adquisitivo del dinero. Un euro hoy puede comprar más que un euro en el futuro porque los precios de los bienes y servicios tienden a aumentar con el tiempo.
+            </p>
+            <p class="text-gray-700 leading-relaxed">
+                Este fenómeno es muy importante para las finanzas personales y empresariales, ya que una inversión debe generar un retorno por encima de la tasa de inflación para que el capital crezca en términos reales.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        function calculateInflation() {
+            const principal = parseFloat(document.getElementById('principal').value);
+            const inflationRate = parseFloat(document.getElementById('inflation').value) / 100;
+            const years = parseFloat(document.getElementById('years').value);
+
+            if (isNaN(principal) || isNaN(inflationRate) || isNaN(years) || principal < 0 || inflationRate < 0 || years < 0) {
+                document.getElementById('future-value').textContent = 'Error';
+                document.getElementById('loss').textContent = 'Error';
+                return;
+            }
+
+            const discountedValue = principal / Math.pow(1 + inflationRate, years);
+            const loss = principal - discountedValue;
+
+            document.getElementById('future-value').textContent = `€${discountedValue.toFixed(2)}`;
+            document.getElementById('loss').textContent = `€${loss.toFixed(2)}`;
+        }
+
+        window.onload = calculateInflation;
+    </script>
+</body>
+</html>
