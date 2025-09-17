@@ -51,10 +51,15 @@ Donde:
 * Los resultados son una **estimación** basada en una tasa de inflación constante. La inflación real puede variar año tras año.
 * Esta herramienta es para fines **educativos e informativos**.
 
-#Segunda herramienta: Valor actual
-Una herramienta que permite ver cómo el valor actual disminuye más conforme aumenta el tiempo y el tipo de interés. 
----
-Para acceder es aquí: https://evarmprof.github.io/mates_financieras/valor_actual.html
+#Segunda herramienta: Gráfico de valor actual
+
+Este proyecto te permite visualizar cómo el valor actual (present value) de una cantidad de dinero cambia a lo largo del tiempo. Puedes ajustar la tasa de interés para ver cómo influye en la devaluación del dinero futuro.
+
+*Enlace a la aplicación*:
+https://evarmprof.github.io/mates_financieras/grafico_valor_actual.html
+
+Nota: Estos proyectos son de carácter educativo y están diseñados para ser visualmente interactivos.
+
 ## Contribuir
 
 ¡Las contribuciones son bienvenidas! Si tienes alguna sugerencia, error que corregir o mejora que proponer, por favor, abre un "Issue" o envía un "Pull Request".
