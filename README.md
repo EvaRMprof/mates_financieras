@@ -51,6 +51,8 @@ Donde:
 * Los resultados son una **estimación** basada en una tasa de inflación constante. La inflación real puede variar año tras año.
 * Esta herramienta es para fines **educativos e informativos**.
 
+#Segunda herramienta: Valor actual
+Una herramienta que permite ver cómo el valor actual disminuye más conforme aumenta el tiempo y el tipo de interés. 
 ---
 
 ## Contribuir
