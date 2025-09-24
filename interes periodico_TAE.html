@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Conciertos y TAE</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .container {
+            max-width: 900px;
+        }
+        canvas {
+            border: 2px solid #e2e8f0;
+            border-radius: 0.75rem;
+            background-color: #ffffff;
+            touch-action: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-4 sm:p-8 flex items-center justify-center min-h-screen">
+    <div class="container mx-auto p-6 bg-white rounded-xl shadow-lg border border-gray-200">
+        <h1 class="text-3xl sm:text-4xl font-bold text-center text-gray-800 mb-2">La Magia del Efecto Concierto</h1>
+        <p class="text-center text-gray-500 mb-6">Una metáfora para entender mejor la relación entre interés periódico y TAE.</p>
+
+        <!-- Explicación con la metáfora del concierto -->
+        <div class="bg-gray-50 p-6 rounded-lg border border-gray-200 mb-8">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                🎤 Música: Pequeños Conciertos vs. un Gran Festival
+            </h2>
+            <p class="text-gray-600">
+                Imagina que una banda de música comienza con <strong>1.000 fans iniciales</strong> y da un pequeño concierto cada mes. En cada concierto, el número de fans aumenta un <strong>10%</strong>. 
+            </p>
+            <p class="text-gray-600 mt-1">
+                La <strong>TAE</strong> es el equivalente de fans que la banda debería obtener si, en lugar de dar 12 pequeños conciertos, hiciera un único y masivo festival al final del año, para quedarse igual. La TAE tiene en cuenta el efecto "viral" de que los fans que ganan en cada concierto atraen a más fans, haciendo que el crecimiento sea cada vez mayor.
+            </p>
+        </div>
+
+        <!-- Simulación Visual -->
+        <div class="flex flex-col items-center">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Simulación Visual de Crecimiento de Fans</h2>
+            <canvas id="concertCanvas" class="w-full h-96 sm:h-80"></canvas>
+            <div id="results" class="mt-4 text-center">
+                <p><strong>Total de fans al final del año:</strong> <span id="finalFans" class="font-bold text-blue-600"></span></p>
+                <p><strong>TAE equivalente:</strong> <span id="equivalentTAE" class="font-bold text-blue-600"></span></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('concertCanvas');
+            const ctx = canvas.getContext('2d');
+            const finalFansSpan = document.getElementById('finalFans');
+            const equivalentTAESpan = document.getElementById('equivalentTAE');
+
+            function resizeCanvas() {
+                canvas.width = canvas.offsetWidth;
+                canvas.height = canvas.offsetHeight;
+            }
+            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas();
+
+            const principal = 1000;
+            const interes = 0.10; // 10%
+            const periodos = 12;
+
+            function animateConcerts() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                const barWidth = (canvas.width / (periodos + 1)) * 0.7;
+                const gap = (canvas.width / (periodos + 1)) * 0.3;
+                const startX = gap / 2;
+                const startY = canvas.height - 40;
+                
+                let currentCapital = principal;
+                const dataPoints = [{ capital: principal, label: 'Inicio', x: 0 }];
+
+                for (let i = 0; i < periodos; i++) {
+                    currentCapital *= (1 + interes);
+                    dataPoints.push({ capital: currentCapital, label: `Mes ${i + 1}`, x: i + 1 });
+                }
+
+                const maxCapital = dataPoints[dataPoints.length - 1].capital;
+                const maxHeight = canvas.height * 0.8;
+
+                // Animación de los conciertos
+                let frame = 0;
+                const maxFrames = periodos + 1;
+
+                function drawFrame() {
+                    if (frame > maxFrames) {
+                         // Mostrar resultados finales
+                        const finalFans = dataPoints[dataPoints.length - 1].capital;
+                        const tae = (Math.pow((1 + interes), periodos) - 1) * 100;
+                        finalFansSpan.textContent = `${finalFans.toFixed(0)} fans`;
+                        equivalentTAESpan.textContent = `${tae.toFixed(2)}%`;
+                        return;
+                    }
+
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                    // Dibujar el concierto inicial
+                    const initialHeight = (dataPoints[0].capital / maxCapital) * maxHeight;
+                    const initialX = startX;
+                    ctx.fillStyle = '#4b5563'; // Color para el capital inicial
+                    ctx.fillRect(initialX, startY - initialHeight, barWidth, initialHeight);
+                    ctx.fillStyle = '#1f2937';
+                    ctx.font = '14px Inter';
+                    ctx.fillText('Inicio', initialX + barWidth / 2, startY + 15);
+                    ctx.fillText(`${dataPoints[0].capital.toFixed(0)}`, initialX + barWidth / 2, startY - initialHeight - 5);
+
+                    // Dibujar los conciertos mensuales
+                    for (let i = 1; i < frame; i++) {
+                        const point = dataPoints[i];
+                        const prevPoint = dataPoints[i - 1];
+                        const x = startX + i * (barWidth + gap);
+                        const totalHeight = (point.capital / maxCapital) * maxHeight;
+                        const growthHeight = ((point.capital - prevPoint.capital) / maxCapital) * maxHeight;
+
+                        // Capital base
+                        ctx.fillStyle = '#3b82f6';
+                        ctx.fillRect(x, startY - (totalHeight - growthHeight), barWidth, totalHeight - growthHeight);
+
+                        // Crecimiento (intereses)
+                        ctx.fillStyle = '#22c55e';
+                        ctx.fillRect(x, startY - totalHeight, barWidth, growthHeight);
+
+                        ctx.fillStyle = '#1f2937';
+                        ctx.fillText(point.label, x + barWidth / 2, startY + 15);
+                        ctx.fillText(`${point.capital.toFixed(0)}`, x + barWidth / 2, startY - totalHeight - 5);
+                    }
+
+                    // Dibujar el macroconcierto final
+                    if (frame > periodos) {
+                        const finalPoint = dataPoints[dataPoints.length - 1];
+                        const finalHeight = (finalPoint.capital / maxCapital) * maxHeight;
+                        const finalX = startX + (periodos + 1) * (barWidth + gap);
+                        
+                        ctx.fillStyle = '#ef4444'; // Rojo para el evento final
+                        ctx.fillRect(finalX, startY - finalHeight, barWidth, finalHeight);
+
+                        ctx.fillStyle = '#1f2937';
+                        ctx.fillText('Macro-Concierto (TAE)', finalX + barWidth / 2, startY + 15);
+                        ctx.fillText(`${finalPoint.capital.toFixed(0)}`, finalX + barWidth / 2, startY - finalHeight - 5);
+                    }
+
+                    frame++;
+                    requestAnimationFrame(drawFrame);
+                }
+
+                drawFrame();
+            }
+
+            // Iniciar la animación al cargar la página
+            animateConcerts();
+        });
+    </script>
+</body>
+</html>
