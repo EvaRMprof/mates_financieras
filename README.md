@@ -58,6 +58,13 @@ Este proyecto te permite visualizar cómo el valor actual (present value) de una
 *Enlace a la aplicación*:
 https://evarmprof.github.io/mates_financieras/grafico_valor_actual.html
 
+#Tercera herramienta: Relación interés periódico y TAE
+
+Te explica de una forma visual la relación entre el interés periódico y la TAE. 
+
+*Enlace a la aplicación*:
+https://evarmprof.github.io/mates_financieras/interes periodico_TAE.html
+
 Nota: Estos proyectos son de carácter educativo y están diseñados para ser visualmente interactivos.
 
 ## Contribuir
