@@ -1,0 +1,1405 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador de Emisión de Señales - Finanzas Corporativas</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .pulse-subtle {
+      animation: pulseSubtle 2.5s infinite ease-in-out;
+    }
+    @keyframes pulseSubtle {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.02); opacity: 0.92; }
+    }
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col selection:bg-indigo-500 selection:text-white">
+
+  <header class="border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-40">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-emerald-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-base sm:text-lg font-bold text-white leading-tight">Finanzas Corporativas</h1>
+          <p class="text-xs text-slate-400 font-medium">Teoría de Emisión de Señales & Valoración</p>
+        </div>
+      </div>
+
+      <!-- Header actions: live status, view toggle, audio & share -->
+      <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
+        <!-- Live status badge -->
+        <div id="connectionBadge" class="flex items-center space-x-1.5 px-2.5 py-1 bg-amber-500/10 border border-amber-500/30 text-amber-300 rounded-full text-xs font-semibold">
+          <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+          <span id="connectionText">Conectando...</span>
+        </div>
+
+        <!-- Student Greeting Badge -->
+        <button id="studentGreetingBadge" class="hidden items-center space-x-1 px-2.5 py-1 bg-indigo-500/20 border border-indigo-500/40 text-indigo-200 rounded-full text-xs font-semibold hover:bg-indigo-500/30 transition-all" title="Haz clic para cambiar tu nombre">
+          👤 Nombre
+        </button>
+
+        <!-- Participants Counter -->
+        <div class="hidden sm:flex items-center space-x-1.5 px-3 py-1 bg-slate-800 border border-slate-700 rounded-full text-xs text-slate-300">
+          <svg class="w-3.5 h-3.5 text-indigo-400" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"></path>
+          </svg>
+          <span id="activeVotersCount">0 votos registrados</span>
+        </div>
+
+        <!-- Ranking / Podium Trigger Button -->
+        <button id="btnOpenLeaderboard" class="p-2 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 rounded-xl transition-colors text-xs flex items-center gap-1.5 font-semibold" title="Ver Podio y Clasificación">
+          <span>🏆</span>
+          <span class="hidden sm:inline">Podio</span>
+        </button>
+
+        <!-- Role Toggle (Estudiante / Proyector Aula) -->
+        <div class="bg-slate-800 p-1 rounded-xl border border-slate-700 flex text-xs font-semibold">
+          <button id="btnStudentMode" class="px-3 py-1 rounded-lg transition-all bg-indigo-600 text-white shadow">
+            Estudiante
+          </button>
+          <button id="btnProfessorMode" class="px-3 py-1 rounded-lg text-slate-400 hover:text-white transition-all">
+            Profesor / Aula
+          </button>
+        </div>
+
+        <!-- Share Link Button -->
+        <button id="btnShareLink" class="p-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-slate-200 transition-colors text-xs flex items-center gap-1.5" title="Copiar enlace para los alumnos">
+          <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path>
+          </svg>
+          <span class="hidden md:inline">Compartir</span>
+        </button>
+
+        <!-- Reset Button -->
+        <button id="btnTriggerReset" class="p-2 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-300 rounded-xl transition-colors text-xs flex items-center gap-1" title="Reiniciar actividad y borrar votos">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
+          <span class="hidden md:inline">Reiniciar</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 flex flex-col gap-6">
+
+    <!-- Category Filter / Progress Pills -->
+    <section class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-slate-800/60 p-3 sm:p-4 rounded-2xl border border-slate-700/80">
+      <div class="flex items-center gap-2 overflow-x-auto w-full pb-1 sm:pb-0" id="scenarioTabs">
+        <!-- Generated dynamically in JS -->
+      </div>
+      <div class="text-xs text-slate-400 whitespace-nowrap pl-1">
+        Caso <span id="currentScenarioIndexText" class="font-bold text-indigo-400 text-sm">1</span> de <span id="totalScenariosText" class="font-bold">4</span>
+      </div>
+    </section>
+
+    <!-- Main Dynamic Card -->
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+      <!-- Left Column: The Corporate Signaling Scenario (7 cols) -->
+      <div class="lg:col-span-7 flex flex-col gap-5">
+        <div class="bg-slate-800/90 rounded-3xl p-6 sm:p-8 border border-slate-700/80 shadow-2xl relative overflow-hidden backdrop-blur">
+          
+          <!-- Category Badge & Difficulty -->
+          <div class="flex items-center justify-between gap-3 mb-4">
+            <span id="badgeCategory" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-300 border border-indigo-500/30">
+              Decisiones de financiación
+            </span>
+            <span id="badgeRealCase" class="text-xs font-mono text-slate-400 bg-slate-900/60 px-2.5 py-1 rounded-lg border border-slate-700">
+              Caso de Mercado Real
+            </span>
+          </div>
+
+          <!-- Scenario Title -->
+          <h2 id="scenarioTitle" class="text-xl sm:text-2xl font-extrabold text-white tracking-tight mb-3">
+            Cargando escenario...
+          </h2>
+
+          <!-- Scenario Context & Details -->
+          <div class="bg-slate-900/80 rounded-2xl p-4 sm:p-5 border border-slate-700/60 mb-6 text-sm sm:text-base text-slate-300 leading-relaxed space-y-3">
+            <p id="scenarioDescription">
+              Cargando los detalles del hecho relevante corporativo...
+            </p>
+            <div id="scenarioKeyMetrics" class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800 text-xs">
+              <!-- Metrics like: Indicador financiero, asimetría de info -->
+            </div>
+          </div>
+
+          <!-- Question Prompt -->
+          <div class="mb-6">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+              <span class="text-xs uppercase tracking-wider font-bold text-slate-300">Pregunta al analista</span>
+            </div>
+            <p class="text-base sm:text-lg font-semibold text-slate-100">
+              ¿Cómo reaccionará el mercado según la Teoría de Señales? ¿Aumentará o caerá el valor de la empresa?
+            </p>
+          </div>
+
+          <!-- Interactive Voting Buttons (Student Mode) -->
+          <div id="votingControls" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <button id="btnVoteUp" class="group relative flex items-center justify-center gap-3 py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white font-bold text-lg shadow-lg shadow-emerald-600/25 transition-all border border-emerald-400/30">
+              <span class="text-2xl group-hover:scale-125 transition-transform">📈</span>
+              <span>SUBE el valor</span>
+            </button>
+            <button id="btnVoteDown" class="group relative flex items-center justify-center gap-3 py-4 px-6 rounded-2xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 active:scale-95 text-white font-bold text-lg shadow-lg shadow-rose-600/25 transition-all border border-rose-400/30">
+              <span class="text-2xl group-hover:scale-125 transition-transform">📉</span>
+              <span>BAJA el valor</span>
+            </button>
+          </div>
+
+          <!-- User's Vote Status Banner -->
+          <div id="myVoteNotification" class="hidden mt-4 p-3 rounded-xl text-center text-xs sm:text-sm font-semibold border">
+            <!-- Injected dynamically -->
+          </div>
+        </div>
+
+        <!-- Academic Theoretical Deep-Dive / Rationale Box -->
+        <div id="academicExplanationCard" class="bg-gradient-to-br from-slate-800 to-slate-900 rounded-3xl p-6 sm:p-7 border border-slate-700/80 shadow-xl transition-all duration-300">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center space-x-2">
+              <div class="p-2 rounded-lg bg-indigo-500/20 text-indigo-300">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                </svg>
+              </div>
+              <h3 class="text-base font-bold text-white">Lección Magistral del Profesor</h3>
+            </div>
+            <span id="solutionStatusPill" class="text-xs px-2.5 py-1 rounded-full bg-slate-800 text-slate-400 border border-slate-700 font-semibold">
+              Solución Oculta
+            </span>
+          </div>
+
+          <!-- Explanation locked notice -->
+          <div id="explanationLockedNotice" class="p-4 bg-slate-900/60 rounded-2xl border border-slate-800 text-center text-xs sm:text-sm text-slate-400 space-y-1">
+            <span class="text-2xl block">🔒</span>
+            <p class="font-medium text-slate-300">La solución académica y el veredicto permanecen ocultos.</p>
+            <p class="text-[11px] text-slate-500">El profesor los revelará tras la deliberación o al pulsar "Revelar Solución".</p>
+          </div>
+
+          <div id="explanationContent" class="hidden space-y-3 text-sm text-slate-300 leading-relaxed border-t border-slate-800/80 pt-3">
+            <div class="p-3 bg-slate-900/60 rounded-xl border border-slate-800 flex items-start gap-2.5">
+              <span class="text-xl">🎯</span>
+              <div>
+                <span class="font-bold text-white text-xs uppercase tracking-wider block">Respuesta Teórica Correcta:</span>
+                <span id="correctVerdictText" class="font-extrabold text-emerald-400 text-base">SUBE</span>
+              </div>
+            </div>
+            <p id="theoreticalMechanismText">
+              <!-- Explanation generated dynamically -->
+            </p>
+            <div class="p-3 bg-indigo-950/40 rounded-xl border border-indigo-900/50 text-xs text-indigo-200">
+              <strong class="text-indigo-100">Principio Financiero Clave:</strong>
+              <span id="keyFinancialPrincipleText">Equilibrio Separador (Separating Equilibrium) y reducción de costes de asimetría informativa.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Real-Time Classroom Live Dashboard (5 cols) -->
+      <div class="lg:col-span-5 flex flex-col gap-5">
+        
+        <!-- Live Polling Results Card -->
+        <div class="bg-slate-800/90 rounded-3xl p-6 sm:p-7 border border-slate-700/80 shadow-2xl backdrop-blur relative">
+          <div class="flex items-center justify-between pb-4 border-b border-slate-700">
+            <div class="flex items-center space-x-2">
+              <span class="relative flex h-3 w-3">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+              </span>
+              <h3 class="text-base font-bold text-white">Votación en Directo del Aula</h3>
+            </div>
+            <span id="scenarioVoteCountBadge" class="text-xs bg-slate-700 text-slate-200 px-2.5 py-1 rounded-full font-semibold">
+              0 votos
+            </span>
+          </div>
+
+          <!-- Interactive Bars -->
+          <div class="my-6 space-y-5">
+            <!-- Sube option bar -->
+            <div>
+              <div class="flex justify-between items-center text-sm font-bold mb-1.5">
+                <span class="flex items-center gap-1.5 text-emerald-400">
+                  <span class="text-lg">📈</span> Sube el valor
+                </span>
+                <span id="labelPercentUp" class="text-emerald-300 font-mono text-base">0%</span>
+              </div>
+              <div class="h-6 w-full bg-slate-900 rounded-xl overflow-hidden p-0.5 border border-slate-700/60 flex">
+                <div id="barVoteUp" class="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-lg transition-all duration-500 ease-out flex items-center justify-end pr-2 text-[10px] font-bold text-slate-950" style="width: 0%">
+                </div>
+              </div>
+              <div class="text-[11px] text-slate-400 mt-1 flex justify-between">
+                <span>Votos emitidos: <strong id="countVoteUp" class="text-slate-200">0</strong></span>
+                <span id="verdictTagUp" class="text-emerald-400 font-bold hidden">¡ACIERTO! ✓</span>
+              </div>
+            </div>
+
+            <!-- Baja option bar -->
+            <div>
+              <div class="flex justify-between items-center text-sm font-bold mb-1.5">
+                <span class="flex items-center gap-1.5 text-rose-400">
+                  <span class="text-lg">📉</span> Baja el valor
+                </span>
+                <span id="labelPercentDown" class="text-rose-300 font-mono text-base">0%</span>
+              </div>
+              <div class="h-6 w-full bg-slate-900 rounded-xl overflow-hidden p-0.5 border border-slate-700/60 flex">
+                <div id="barVoteDown" class="h-full bg-gradient-to-r from-rose-500 to-red-400 rounded-lg transition-all duration-500 ease-out flex items-center justify-end pr-2 text-[10px] font-bold text-slate-950" style="width: 0%">
+                </div>
+              </div>
+              <div class="text-[11px] text-slate-400 mt-1 flex justify-between">
+                <span>Votos emitidos: <strong id="countVoteDown" class="text-slate-200">0</strong></span>
+                <span id="verdictTagDown" class="text-rose-400 font-bold hidden">¡ACIERTO! ✓</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Live Consensus Indicator -->
+          <div id="consensusBox" class="p-3.5 bg-slate-900/90 rounded-2xl border border-slate-700/70 text-xs text-slate-300">
+            <div class="flex items-center gap-2 font-semibold text-slate-200 mb-1">
+              <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              <span>Consenso de la Clase:</span>
+            </div>
+            <p id="consensusText" class="text-slate-400">Esperando las primeras respuestas de los alumnos...</p>
+          </div>
+
+          <!-- Navigation Controls Between Scenarios -->
+          <div class="flex items-center justify-between gap-3 mt-6 pt-4 border-t border-slate-700">
+            <button id="btnPrevScenario" class="px-3.5 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold text-slate-200 flex items-center gap-1 transition-all">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+              Anterior
+            </button>
+            <span class="text-xs text-slate-400 font-medium" id="navPageCounter">1 / 4</span>
+            <button id="btnNextScenario" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold text-white flex items-center gap-1 transition-all shadow-md shadow-indigo-600/30">
+              Siguiente
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Instructor Control Deck (Visible especially in Professor Mode) -->
+        <div id="professorDeck" class="bg-gradient-to-br from-indigo-950/60 to-slate-900 rounded-3xl p-5 border border-indigo-500/30 shadow-xl">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2">
+              <span class="p-1.5 bg-indigo-500/20 text-indigo-400 rounded-lg">🎓</span>
+              <h4 class="text-xs uppercase tracking-wider font-bold text-indigo-200">Panel del Profesor</h4>
+            </div>
+            <span class="text-[10px] bg-indigo-500/30 text-indigo-200 px-2 py-0.5 rounded font-mono">Modo Docente</span>
+          </div>
+          <p class="text-xs text-slate-300 mb-4">
+            Comparte la pantalla en el proyector del aula. Puedes revelar u ocultar la solución académica mientras los estudiantes debaten, o borrar la sesión para un nuevo grupo.
+          </p>
+          <div class="grid grid-cols-2 gap-2 mb-3">
+            <button id="btnProfRevealToggle" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-xl text-xs font-semibold text-white transition-all text-center">
+              <span id="btnProfRevealText">Revelar Solución</span>
+            </button>
+            <button id="btnShowPodiumProf" class="px-3 py-2 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 rounded-xl text-xs font-semibold transition-all text-center flex items-center justify-center gap-1">
+              <span>🏆</span>
+              <span>Ver Podio Final</span>
+            </button>
+          </div>
+
+          <div class="pt-3 border-t border-indigo-900/40 flex items-center justify-between text-xs text-indigo-300">
+            <span>Alumnos activos: <strong id="studentsTotalCount" class="text-white">0</strong></span>
+            <button id="linkShowFullRanking" class="text-indigo-400 hover:text-indigo-200 underline text-[11px]">Ver tabla completa</button>
+          </div>
+          <div id="participantsMiniList" class="mt-2 space-y-1.5 max-h-28 overflow-y-auto pr-1"></div>
+
+          <div class="mt-3 pt-2 border-t border-indigo-900/40">
+            <button id="btnProfResetAll" class="w-full px-3 py-1.5 bg-rose-600/20 hover:bg-rose-600/30 border border-rose-500/40 text-rose-300 rounded-xl text-xs font-semibold transition-all text-center">
+              Borrar Respuestas y Reiniciar
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Didactic Summary Table (All 4 Types of Signals) -->
+    <section class="mt-4 bg-slate-800/40 border border-slate-700/60 rounded-3xl p-6">
+      <h3 class="text-lg font-bold text-white mb-2 flex items-center gap-2">
+        <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+        Mapa Teórico: Los 4 Pilares de la Emisión de Señales
+      </h3>
+      <p class="text-xs text-slate-400 mb-4">
+        Las señales eficaces deben ser costosas de emitir (*costly signaling*) para que una empresa débil no pueda imitarlas sin riesgo de insolvencia o sanción de mercado.
+      </p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+        <div class="p-3.5 bg-slate-900/80 rounded-2xl border border-slate-700">
+          <span class="font-bold text-indigo-300 block mb-1">1. Financiación</span>
+          <p class="text-slate-400 leading-relaxed">Emisión de deuda vs ampliación de capital (Teoría del Pecking Order) y programas de recompra de acciones (*buybacks*).</p>
+        </div>
+        <div class="p-3.5 bg-slate-900/80 rounded-2xl border border-slate-700">
+          <span class="font-bold text-emerald-300 block mb-1">2. Inversión</span>
+          <p class="text-slate-400 leading-relaxed">Asignación de CAPEX y proyectos de I+D de alto VAN frente a liquidaciones de activos de corto plazo.</p>
+        </div>
+        <div class="p-3.5 bg-slate-900/80 rounded-2xl border border-slate-700">
+          <span class="font-bold text-amber-300 block mb-1">3. Calificación crediticia</span>
+          <p class="text-slate-400 leading-relaxed">Evaluación externa por agencias de rating (Moody's, S&P, Fitch). Upgrades reducen el WACC y abren acceso a fondos institucionales.</p>
+        </div>
+        <div class="p-3.5 bg-slate-900/80 rounded-2xl border border-slate-700">
+          <span class="font-bold text-cyan-300 block mb-1">4. Noticias (+ vs -)</span>
+          <p class="text-slate-400 leading-relaxed">Transparencia en *guidance*, resultados trimestrales inesperados (*earnings surprises*) y gestión rápida de contingencias.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="resetModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-md w-full p-6 shadow-2xl text-slate-200">
+      <div class="w-12 h-12 rounded-2xl bg-rose-500/20 text-rose-400 flex items-center justify-center mb-4">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+        </svg>
+      </div>
+      <h3 class="text-lg font-bold text-white mb-2">¿Reiniciar la actividad para todos?</h3>
+      <p class="text-sm text-slate-400 mb-6 leading-relaxed">
+        Esta acción pondrá a cero los votos de todos los participantes conectados en tiempo real para que la clase o un nuevo grupo pueda comenzar de nuevo.
+      </p>
+      <div class="flex justify-end gap-3">
+        <button id="btnCancelReset" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 font-semibold text-xs text-slate-300 transition-all">
+          Cancelar
+        </button>
+        <button id="btnConfirmReset" class="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 font-semibold text-xs text-white transition-all shadow-lg shadow-rose-600/30">
+          Sí, borrar y reiniciar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Compartir con Código QR para Aula / Proyector -->
+  <div id="shareModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-md w-full p-6 shadow-2xl text-slate-200 relative">
+      <button id="btnCloseShareModal" class="absolute top-4 right-4 text-slate-400 hover:text-white p-2 rounded-xl hover:bg-slate-800 transition-all" title="Cerrar">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-10 h-10 rounded-2xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path>
+          </svg>
+        </div>
+        <div>
+          <h3 class="text-base font-bold text-white leading-tight">Acceso para Estudiantes</h3>
+          <p class="text-xs text-slate-400">Escaneo QR o enlace de votación</p>
+        </div>
+      </div>
+
+      <!-- QR Code projection box -->
+      <div class="flex flex-col items-center justify-center bg-slate-950/70 p-4 rounded-2xl border border-slate-800 mb-4">
+        <div class="bg-white p-2.5 rounded-2xl shadow-inner mb-2 flex items-center justify-center">
+          <img id="qrCodeImg" src="" alt="Código QR para acceso de alumnos" class="w-44 h-44 object-contain rounded-xl" />
+        </div>
+        <p class="text-xs text-slate-400 text-center flex items-center gap-1.5 font-medium">
+          <span>📱</span> Pide a los alumnos que enfoquen con su móvil al proyector
+        </p>
+      </div>
+
+      <!-- URL Copy input field -->
+      <div class="space-y-2 mb-4">
+        <label for="inputShareUrl" class="block text-xs font-semibold text-slate-300">Enlace directo para compartir:</label>
+        <div class="flex gap-2">
+          <input id="inputShareUrl" type="text" placeholder="https://tu-usuario.github.io/senales/" class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 font-mono select-all" />
+          <button id="btnCopyModalUrl" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-semibold text-xs rounded-xl transition-all shadow-md shadow-indigo-600/30 whitespace-nowrap">
+            Copiar
+          </button>
+        </div>
+        <div id="localWarningNotice" class="hidden p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-xs text-amber-300 space-y-1">
+          <span class="font-bold flex items-center gap-1">⚠️ Archivo abierto en local (disco de tu ordenador):</span>
+          <p class="text-slate-300">Los móviles de tus alumnos no pueden acceder a tu disco duro. Sube este archivo a <strong>GitHub Pages</strong> o pega arriba el enlace público de tu web para que el QR se genere automáticamente con esa dirección.</p>
+        </div>
+        <div id="iframeNotice" class="p-2.5 bg-indigo-500/10 border border-indigo-500/30 rounded-xl text-[11px] text-indigo-300 space-y-1">
+          <span class="font-bold flex items-center gap-1">💡 Consejo:</span>
+          <p class="text-slate-300">Puedes editar el enlace de la caja en cualquier momento y el código QR cambiará al instante.</p>
+        </div>
+      </div>
+
+      <div class="flex justify-end">
+        <button id="btnCloseShareModalBtn" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 font-semibold text-xs text-slate-300 transition-all">
+          Listo
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Identificación Estudiante -->
+  <div id="studentNameModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-sm w-full p-6 shadow-2xl text-slate-200">
+      <div class="w-12 h-12 rounded-2xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center mb-4 text-2xl">
+        🎓
+      </div>
+      <h3 class="text-lg font-bold text-white mb-1">¡Bienvenido a la Actividad!</h3>
+      <p class="text-xs text-slate-400 mb-4">
+        Escribe tu nombre o alias para registrar tus respuestas y competir en el ranking de la clase.
+      </p>
+      <form id="formStudentName" class="space-y-3">
+        <input 
+          id="inputStudentName" 
+          type="text" 
+          required 
+          maxlength="25" 
+          placeholder="Ej. Laura M., Carlos R." 
+          class="w-full bg-slate-950 border border-slate-700 focus:border-indigo-500 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none"
+        />
+        <button type="submit" class="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 transition-all">
+          Entrar y Comenzar
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Podio / Ranking de la Clase -->
+  <div id="rankingModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-lg w-full p-6 shadow-2xl text-slate-200 relative max-h-[90vh] flex flex-col">
+      <button id="btnCloseRankingModal" class="absolute top-4 right-4 text-slate-400 hover:text-white p-2 rounded-xl hover:bg-slate-800 transition-all" title="Cerrar">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+
+      <div class="flex items-center gap-2.5 mb-4">
+        <div class="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-xl">
+          🏆
+        </div>
+        <div>
+          <h3 class="text-base font-bold text-white">Podio y Clasificación del Aula</h3>
+          <p class="text-xs text-slate-400">100 puntos por cada acierto</p>
+        </div>
+      </div>
+
+      <!-- Podium Top 3 Visual -->
+      <div class="grid grid-cols-3 gap-2 items-end pt-2 pb-4 border-b border-slate-800 text-center">
+        <!-- 2nd Place -->
+        <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-2.5 flex flex-col items-center">
+          <span class="text-xl">🥈</span>
+          <span class="text-[10px] uppercase font-bold text-slate-400 mt-1">2º Lugar</span>
+          <span id="podiumName2" class="font-bold text-xs text-slate-200 truncate w-full mt-1">---</span>
+          <span id="podiumScore2" class="text-[11px] font-mono text-indigo-300 font-semibold mt-0.5">0 pts</span>
+        </div>
+        <!-- 1st Place -->
+        <div class="bg-gradient-to-b from-amber-500/20 to-slate-800/90 border border-amber-500/40 rounded-2xl p-3 flex flex-col items-center scale-105 shadow-lg shadow-amber-500/10">
+          <span class="text-2xl">🥇</span>
+          <span class="text-[10px] uppercase font-bold text-amber-400 mt-1">Líder</span>
+          <span id="podiumName1" class="font-bold text-sm text-white truncate w-full mt-1">---</span>
+          <span id="podiumScore1" class="text-xs font-mono text-amber-300 font-extrabold mt-0.5">0 pts</span>
+        </div>
+        <!-- 3rd Place -->
+        <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-2.5 flex flex-col items-center">
+          <span class="text-xl">🥉</span>
+          <span class="text-[10px] uppercase font-bold text-amber-700 mt-1">3º Lugar</span>
+          <span id="podiumName3" class="font-bold text-xs text-slate-200 truncate w-full mt-1">---</span>
+          <span id="podiumScore3" class="text-[11px] font-mono text-indigo-300 font-semibold mt-0.5">0 pts</span>
+        </div>
+      </div>
+
+      <!-- Full Leaderboard Table Scrollable -->
+      <div class="flex-1 overflow-y-auto my-4 space-y-2 pr-1" id="leaderboardFullTable">
+        <!-- Injected dynamically -->
+      </div>
+
+      <div class="flex justify-end pt-2 border-t border-slate-800">
+        <button id="btnCloseRankingModalBtn" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 font-semibold text-xs text-slate-300 transition-all">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toastNotification" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 px-4 py-3 rounded-2xl bg-indigo-600 text-white text-xs font-semibold shadow-xl flex items-center gap-2 border border-indigo-400/40">
+    <svg class="w-4 h-4 text-emerald-300" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
+    <span id="toastMessage">Enlace copiado</span>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { 
+      getAuth, 
+      signInAnonymously, 
+      signInWithCustomToken 
+    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { 
+      getFirestore, 
+      collection, 
+      doc, 
+      setDoc, 
+      deleteDoc, 
+      onSnapshot, 
+      getDocs 
+    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    const SCENARIOS = [
+      {
+        id: "scenario_1",
+        category: "Decisiones de Financiación",
+        title: "Caso 1: Recompra masiva de acciones con cargo a reservas",
+        description: "Una multinacional tecnológica con sólida generación de caja anuncia por sorpresa un plan de recompra del 8% de su propio capital social en Bolsa, financiado íntegramente con sus excedentes de liquidez acumulados.",
+        metrics: [
+          { label: "Instrumento", value: "Share Buyback (Recompra)" },
+          { label: "Fuente de fondos", value: "Caja excedentaria" }
+        ],
+        expectedVerdict: "up", // 'up' or 'down'
+        keyPrinciple: "Teoría del Pecking Order y señal de infravaloración directiva.",
+        rationale: "La directiva posee mayor información interna que los inversores (*asimetría informativa*). Cuando deciden destinar caja a comprar acciones propias, transmiten al mercado la convicción inequívoca de que las acciones cotizan por debajo de su valor intrínseco real y que la compañía no enfrenta tensiones de liquidez futuras."
+      },
+      {
+        id: "scenario_2",
+        category: "Decisiones de Inversión",
+        title: "Caso 2: Inversión récord en I+D patentable vs. recorte de costes",
+        description: "Una compañía farmacéutica anuncia el compromiso vinculante de 1.200 millones de euros en el desarrollo y ensayos clínicos de una nueva patente médica contra enfermedades raras, con un Valor Actual Neto (VAN) estimado fuertemente positivo a 5 años.",
+        metrics: [
+          { label: "Compromiso de capital", value: "1.200 M€ en I+D" },
+          { label: "Criterio financiero", value: "VAN > 0 superior al WACC" }
+        ],
+        expectedVerdict: "up",
+        keyPrinciple: "Equilibrio Separador (Separating Equilibrium) y creación de valor a largo plazo.",
+        rationale: "Invertir en proyectos complejos de I+D es una señal costosa que los competidores ineficientes no pueden emular. Demuestra una ventaja competitiva sostenible (*moat*) y flujos de caja futuros descontados superiores al coste del capital, lo que incrementa el valor de mercado de la firma."
+      },
+      {
+        id: "scenario_3",
+        category: "Agencias de Calificación Crediticia (Rating)",
+        title: "Caso 3: Fitch degrada la perspectiva de 'Estable' a 'Negativa'",
+        description: "Fitch Ratings mantiene provisionalmente la nota en BBB-, pero coloca la perspectiva de una corporación industrial en 'Negativa' alertando sobre el rápido deterioro del ratio de cobertura de deuda (Deuda Neta / EBITDA > 4.2x) ante el vencimiento de deuda senior.",
+        metrics: [
+          { label: "Agencia Externa", value: "Fitch Ratings" },
+          { label: "Impacto crediticio", value: "Riesgo de 'Bono Basura' (Fallen Angel)" }
+        ],
+        expectedVerdict: "down",
+        keyPrinciple: "Certificación de solvencia externa y aumento del WACC.",
+        rationale: "Las agencias de rating actúan como inspectores independientes que mitigan el riesgo moral. Una advertencia de este calibre señala a los mercados que la probabilidad de refinanciación ventajosa ha caído, elevando la prima de riesgo crediticio exigida por los bonistas y reduciendo el valor presente de los accionistas."
+      },
+      {
+        id: "scenario_4",
+        category: "Noticias Positivas vs Negativas",
+        title: "Caso 4: Publicación de 'Profit Warning' y rebaja del Guidance",
+        description: "A dos semanas de publicar sus cuentas auditadas, la dirección emite un comunicado al regulador bursátil rebajando inesperadamente su previsión de beneficio operativo (EBIT) en un 22% debido al encarecimiento imprevisto de materias primas y caída de pedidos.",
+        metrics: [
+          { label: "Tipo de hecho relevante", value: "Profit Warning (Aviso de pérdidas)" },
+          { label: "Efecto temporal", value: "Asimetría revelada al mercado" }
+        ],
+        expectedVerdict: "down",
+        keyPrinciple: "Transmisión de información adversa y penalización inmediata de múltiplos.",
+        rationale: "El retraso o divulgación forzosa de un profit warning señala fragilidad operativa y pérdida de visibilidad en los flujos futuros. Los inversores reajustan a la baja tanto la tasa esperada de crecimiento (*g*) como los múltiplos PER y EV/EBITDA, provocando una caída fulminante de la cotización."
+      }
+    ];
+
+    let currentScenarioIndex = 0;
+    let myVoterId = null;
+    let myStudentName = "";
+    let isProfessorMode = false;
+    let isRevealedByProfessor = false; // Controls whether solution is visible
+    let allVotesList = []; // stores all public votes from Firestore
+    let db = null;
+    let auth = null;
+    let currentSessionTimestamp = 0;
+
+    // Check if mode is forced via URL parameter (?mode=student)
+    const urlParams = new URLSearchParams(window.location.search);
+    const forcedStudent = urlParams.get('mode') === 'student';
+
+    // Synthesizer for pleasant audio feedback
+    let synth = null;
+    function playChime(isPositive) {
+      try {
+        if (!synth) {
+          synth = new Tone.PolySynth(Tone.Synth).toDestination();
+          synth.volume.value = -12;
+        }
+        if (Tone.context.state !== 'running') {
+          Tone.start();
+        }
+        if (isPositive) {
+          synth.triggerAttackRelease(["C5", "E5", "G5"], "8n");
+        } else {
+          synth.triggerAttackRelease(["F4", "C4"], "8n");
+        }
+      } catch (e) {
+        // Audio might be blocked until user gesture
+      }
+    }
+
+    function getOrCreateVoterId() {
+      let id = sessionStorage.getItem("signal_voter_id");
+      if (!id) {
+        id = "voter_" + Math.random().toString(36).substring(2, 9);
+        sessionStorage.setItem("signal_voter_id", id);
+      }
+      return id;
+    }
+    myVoterId = getOrCreateVoterId();
+    myStudentName = sessionStorage.getItem("signal_student_name") || "";
+
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'finanzas-senales-interactive';
+    
+    // UI Elements References
+    const connectionBadge = document.getElementById("connectionBadge");
+    const connectionText = document.getElementById("connectionText");
+    const activeVotersCount = document.getElementById("activeVotersCount");
+    const scenarioVoteCountBadge = document.getElementById("scenarioVoteCountBadge");
+    const scenarioTabs = document.getElementById("scenarioTabs");
+    const currentScenarioIndexText = document.getElementById("currentScenarioIndexText");
+    const totalScenariosText = document.getElementById("totalScenariosText");
+    const badgeCategory = document.getElementById("badgeCategory");
+    const scenarioTitle = document.getElementById("scenarioTitle");
+    const scenarioDescription = document.getElementById("scenarioDescription");
+    const scenarioKeyMetrics = document.getElementById("scenarioKeyMetrics");
+    const btnVoteUp = document.getElementById("btnVoteUp");
+    const btnVoteDown = document.getElementById("btnVoteDown");
+    const myVoteNotification = document.getElementById("myVoteNotification");
+    const barVoteUp = document.getElementById("barVoteUp");
+    const barVoteDown = document.getElementById("barVoteDown");
+    const labelPercentUp = document.getElementById("labelPercentUp");
+    const labelPercentDown = document.getElementById("labelPercentDown");
+    const countVoteUp = document.getElementById("countVoteUp");
+    const countVoteDown = document.getElementById("countVoteDown");
+    const verdictTagUp = document.getElementById("verdictTagUp");
+    const verdictTagDown = document.getElementById("verdictTagDown");
+    const consensusText = document.getElementById("consensusText");
+    const btnPrevScenario = document.getElementById("btnPrevScenario");
+    const btnNextScenario = document.getElementById("btnNextScenario");
+    const navPageCounter = document.getElementById("navPageCounter");
+    const explanationLockedNotice = document.getElementById("explanationLockedNotice");
+    const explanationContent = document.getElementById("explanationContent");
+    const solutionStatusPill = document.getElementById("solutionStatusPill");
+    const correctVerdictText = document.getElementById("correctVerdictText");
+    const theoreticalMechanismText = document.getElementById("theoreticalMechanismText");
+    const keyFinancialPrincipleText = document.getElementById("keyFinancialPrincipleText");
+    const btnStudentMode = document.getElementById("btnStudentMode");
+    const btnProfessorMode = document.getElementById("btnProfessorMode");
+    const professorDeck = document.getElementById("professorDeck");
+    const btnProfRevealToggle = document.getElementById("btnProfRevealToggle");
+    const btnProfRevealText = document.getElementById("btnProfRevealText");
+    const resetModal = document.getElementById("resetModal");
+    const btnTriggerReset = document.getElementById("btnTriggerReset");
+    const btnCancelReset = document.getElementById("btnCancelReset");
+    const btnConfirmReset = document.getElementById("btnConfirmReset");
+    const btnShareLink = document.getElementById("btnShareLink");
+    const toastNotification = document.getElementById("toastNotification");
+    const toastMessage = document.getElementById("toastMessage");
+
+    const studentGreetingBadge = document.getElementById("studentGreetingBadge");
+    const studentNameModal = document.getElementById("studentNameModal");
+    const formStudentName = document.getElementById("formStudentName");
+    const inputStudentName = document.getElementById("inputStudentName");
+
+    const rankingModal = document.getElementById("rankingModal");
+    const btnOpenLeaderboard = document.getElementById("btnOpenLeaderboard");
+    const btnShowPodiumProf = document.getElementById("btnShowPodiumProf");
+    const btnCloseRankingModal = document.getElementById("btnCloseRankingModal");
+    const btnCloseRankingModalBtn = document.getElementById("btnCloseRankingModalBtn");
+    const linkShowFullRanking = document.getElementById("linkShowFullRanking");
+    const podiumName1 = document.getElementById("podiumName1");
+    const podiumScore1 = document.getElementById("podiumScore1");
+    const podiumName2 = document.getElementById("podiumName2");
+    const podiumScore2 = document.getElementById("podiumScore2");
+    const podiumName3 = document.getElementById("podiumName3");
+    const podiumScore3 = document.getElementById("podiumScore3");
+    const leaderboardFullTable = document.getElementById("leaderboardFullTable");
+    const studentsTotalCount = document.getElementById("studentsTotalCount");
+    const participantsMiniList = document.getElementById("participantsMiniList");
+
+    const shareModal = document.getElementById("shareModal");
+    const btnCloseShareModal = document.getElementById("btnCloseShareModal");
+    const btnCloseShareModalBtn = document.getElementById("btnCloseShareModalBtn");
+    const inputShareUrl = document.getElementById("inputShareUrl");
+    const btnCopyModalUrl = document.getElementById("btnCopyModalUrl");
+    const qrCodeImg = document.getElementById("qrCodeImg");
+    const localWarningNotice = document.getElementById("localWarningNotice");
+
+    totalScenariosText.textContent = SCENARIOS.length;
+
+    // Initialize Mode from URL
+    if (forcedStudent) {
+      isProfessorMode = false;
+      btnProfessorMode.style.display = 'none'; // Hide professor toggle from mobile students
+    }
+
+    async function initFirebase() {
+      try {
+        let firebaseConfig = null;
+        if (typeof __firebase_config !== 'undefined') {
+          firebaseConfig = JSON.parse(__firebase_config);
+        } else {
+          setConnectionState(true, "Modo Demo Activo");
+          setupLocalSimulation();
+          return;
+        }
+
+        const app = initializeApp(firebaseConfig);
+        auth = getAuth(app);
+        db = getFirestore(app);
+
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(auth);
+        }
+
+        if (!auth.currentUser) {
+          setConnectionState(false, "Fallo de Auth");
+          return;
+        }
+
+        setConnectionState(true, "En vivo (Sincronizado)");
+        subscribeToLiveFirestoreData();
+      } catch (err) {
+        console.error("Firebase init error:", err);
+        setConnectionState(false, "Modo Local");
+        setupLocalSimulation();
+      }
+    }
+
+    function setConnectionState(isOnline, text) {
+      if (isOnline) {
+        connectionBadge.className = "flex items-center space-x-1.5 px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 rounded-full text-xs font-semibold";
+        connectionBadge.querySelector("span").className = "w-2 h-2 rounded-full bg-emerald-400";
+      } else {
+        connectionBadge.className = "flex items-center space-x-1.5 px-2.5 py-1 bg-amber-500/10 border border-amber-500/30 text-amber-300 rounded-full text-xs font-semibold";
+        connectionBadge.querySelector("span").className = "w-2 h-2 rounded-full bg-amber-400";
+      }
+      connectionText.textContent = text;
+    }
+
+    function subscribeToLiveFirestoreData() {
+      if (!db || !auth.currentUser) return;
+
+      const votesColRef = collection(db, 'artifacts', appId, 'public', 'data', 'scenario_votes');
+      
+      onSnapshot(votesColRef, (snapshot) => {
+        const votes = [];
+        snapshot.forEach((docSnap) => {
+          votes.push({ id: docSnap.id, ...docSnap.data() });
+        });
+        allVotesList = votes;
+        updateUI();
+      }, (error) => {
+        console.error("Firestore snapshot error:", error);
+      });
+
+      const sessionDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'session_meta', 'state');
+      onSnapshot(sessionDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data.resetTimestamp && data.resetTimestamp !== currentSessionTimestamp) {
+            currentSessionTimestamp = data.resetTimestamp;
+            showToast("El profesor ha reiniciado las votaciones");
+          }
+          if (typeof data.isRevealed !== 'undefined') {
+            isRevealedByProfessor = !!data.isRevealed;
+            updateUI();
+          }
+        }
+      }, (err) => console.error("Session meta listen error:", err));
+    }
+
+    function setupLocalSimulation() {
+      allVotesList = [
+        { scenarioId: "scenario_1", voterId: "stu_1", studentName: "Laura M.", vote: "up", isCorrect: true },
+        { scenarioId: "scenario_1", voterId: "stu_2", studentName: "Carlos R.", vote: "up", isCorrect: true },
+        { scenarioId: "scenario_1", voterId: "stu_3", studentName: "Elena P.", vote: "down", isCorrect: false },
+        { scenarioId: "scenario_2", voterId: "stu_1", studentName: "Laura M.", vote: "up", isCorrect: true },
+        { scenarioId: "scenario_2", voterId: "stu_2", studentName: "Carlos R.", vote: "up", isCorrect: true },
+        { scenarioId: "scenario_3", voterId: "stu_1", studentName: "Laura M.", vote: "down", isCorrect: true },
+        { scenarioId: "scenario_4", voterId: "stu_1", studentName: "Laura M.", vote: "down", isCorrect: true }
+      ];
+      updateUI();
+    }
+
+    async function castVote(voteChoice) {
+      if (!myStudentName) {
+        openStudentNameModal();
+        return;
+      }
+
+      const scenario = SCENARIOS[currentScenarioIndex];
+      // Check if already voted in this scenario
+      const alreadyVoted = allVotesList.find(v => v.scenarioId === scenario.id && v.voterId === myVoterId);
+      if (alreadyVoted) {
+        showToast("Ya has enviado tu voto para este caso.");
+        return;
+      }
+
+      const isCorrect = (voteChoice === scenario.expectedVerdict);
+      playChime(true);
+
+      const voteRecord = {
+        scenarioId: scenario.id,
+        voterId: myVoterId,
+        studentName: myStudentName,
+        vote: voteChoice,
+        isCorrect: isCorrect,
+        timestamp: Date.now()
+      };
+
+      if (db && auth.currentUser) {
+        try {
+          const docId = `${scenario.id}_${myVoterId}`;
+          const voteDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'scenario_votes', docId);
+          await setDoc(voteDocRef, voteRecord);
+        } catch (error) {
+          console.error("Error saving vote:", error);
+        }
+      } else {
+        allVotesList.push(voteRecord);
+        updateUI();
+      }
+
+      showToast("¡Voto registrado con éxito!");
+      updateUI();
+    }
+
+    async function toggleProfessorReveal() {
+      isRevealedByProfessor = !isRevealedByProfessor;
+      if (db && auth.currentUser) {
+        try {
+          const sessionDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'session_meta', 'state');
+          await setDoc(sessionDocRef, { isRevealed: isRevealedByProfessor }, { merge: true });
+        } catch (e) {
+          console.error("Error toggling reveal:", e);
+        }
+      }
+      updateUI();
+    }
+
+    async function resetEntireActivity() {
+      closeResetModal();
+      showToast("Borrando votos y reiniciando...");
+
+      if (db && auth.currentUser) {
+        try {
+          const votesColRef = collection(db, 'artifacts', appId, 'public', 'data', 'scenario_votes');
+          const snapshot = await getDocs(votesColRef);
+          const deletePromises = [];
+          snapshot.forEach((d) => {
+            deletePromises.push(deleteDoc(d.ref));
+          });
+          await Promise.all(deletePromises);
+
+          const sessionDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'session_meta', 'state');
+          await setDoc(sessionDocRef, { resetTimestamp: Date.now(), isRevealed: false });
+
+          allVotesList = [];
+          isRevealedByProfessor = false;
+          showToast("¡Votaciones y ranking reseteados a cero!");
+          updateUI();
+        } catch (error) {
+          console.error("Error resetting session:", error);
+          showToast("Error al reiniciar datos");
+        }
+      } else {
+        allVotesList = [];
+        isRevealedByProfessor = false;
+        showToast("¡Votaciones reseteadas!");
+        updateUI();
+      }
+    }
+
+    function calculateLeaderboard() {
+      // Group votes by voter
+      const userMap = {};
+      allVotesList.forEach(v => {
+        if (!userMap[v.voterId]) {
+          userMap[v.voterId] = {
+            voterId: v.voterId,
+            studentName: v.studentName || "Anónimo",
+            score: 0,
+            answersCount: 0,
+            lastTimestamp: 0
+          };
+        }
+        userMap[v.voterId].answersCount += 1;
+        if (v.isCorrect) {
+          userMap[v.voterId].score += 100; // 100 points per correct answer
+        }
+        if (v.timestamp > userMap[v.voterId].lastTimestamp) {
+          userMap[v.voterId].lastTimestamp = v.timestamp;
+        }
+      });
+
+      const list = Object.values(userMap);
+      list.sort((a, b) => b.score - a.score || a.lastTimestamp - b.lastTimestamp);
+      return list;
+    }
+
+    function updateUI() {
+      const scenario = SCENARIOS[currentScenarioIndex];
+
+      // 1. Student Name display
+      if (studentGreetingBadge) {
+        if (myStudentName) {
+          studentGreetingBadge.textContent = `👤 ${myStudentName}`;
+          studentGreetingBadge.classList.remove("hidden");
+          studentGreetingBadge.classList.add("inline-flex");
+        } else {
+          studentGreetingBadge.classList.add("hidden");
+          studentGreetingBadge.classList.remove("inline-flex");
+        }
+      }
+
+      // 2. Render tabs
+      renderScenarioTabs();
+
+      // 3. Scenario details
+      if (currentScenarioIndexText) currentScenarioIndexText.textContent = (currentScenarioIndex + 1);
+      if (navPageCounter) navPageCounter.textContent = `${currentScenarioIndex + 1} / ${SCENARIOS.length}`;
+      if (badgeCategory) badgeCategory.textContent = scenario.category;
+      if (scenarioTitle) scenarioTitle.textContent = scenario.title;
+      if (scenarioDescription) scenarioDescription.textContent = scenario.description;
+
+      if (scenarioKeyMetrics) {
+        scenarioKeyMetrics.innerHTML = scenario.metrics.map(m => `
+          <div class="bg-slate-800/80 p-2 rounded-xl border border-slate-700/50">
+            <span class="text-slate-400 block">${m.label}:</span>
+            <span class="font-bold text-slate-100">${m.value}</span>
+          </div>
+        `).join('');
+      }
+
+      // 4. Student vote status check
+      const myCurrentVote = allVotesList.find(v => v.scenarioId === scenario.id && v.voterId === myVoterId);
+      
+      if (myCurrentVote) {
+        if (btnVoteUp) btnVoteUp.disabled = true;
+        if (btnVoteDown) btnVoteDown.disabled = true;
+
+        if (myVoteNotification) {
+          myVoteNotification.classList.remove("hidden");
+          
+          if (isProfessorMode || isRevealedByProfessor) {
+            const isCorrect = (myCurrentVote.vote === scenario.expectedVerdict);
+            myVoteNotification.className = `mt-4 p-4 rounded-2xl text-center text-xs sm:text-sm font-semibold border ${
+              isCorrect 
+                ? 'bg-emerald-950/60 border-emerald-500/50 text-emerald-300' 
+                : 'bg-rose-950/60 border-rose-500/50 text-rose-300'
+            }`;
+            myVoteNotification.innerHTML = `Voto emitido: <strong>${myCurrentVote.vote === 'up' ? '📈 SUBE' : '📉 BAJA'}</strong> ${
+              isCorrect ? '— ¡Enhorabuena, has acertado! (+100 pts)' : '— No era la señal esperada.'
+            } <div class="text-[11px] text-slate-400 mt-1">Tu voto quedó registrado y no puede modificarse.</div>`;
+          } else {
+            myVoteNotification.className = 'mt-4 p-4 rounded-2xl text-center text-xs sm:text-sm font-semibold border bg-slate-900 border-indigo-500/40 text-indigo-300';
+            myVoteNotification.innerHTML = `✅ Voto registrado: <strong>${myCurrentVote.vote === 'up' ? '📈 SUBE el valor' : '📉 BAJA el valor'}</strong>. <div class="text-[11px] text-slate-400 mt-1">El voto está sellado. El profesor desvelará el veredicto en la pantalla del aula.</div>`;
+          }
+        }
+      } else {
+        if (btnVoteUp) btnVoteUp.disabled = false;
+        if (btnVoteDown) btnVoteDown.disabled = false;
+        if (myVoteNotification) myVoteNotification.classList.add("hidden");
+      }
+
+      // 5. Voting stats
+      const currentVotes = allVotesList.filter(v => v.scenarioId === scenario.id);
+      const totalVotes = currentVotes.length;
+      const votesUp = currentVotes.filter(v => v.vote === 'up').length;
+      const votesDown = currentVotes.filter(v => v.vote === 'down').length;
+
+      const percentUp = totalVotes > 0 ? Math.round((votesUp / totalVotes) * 100) : 0;
+      const percentDown = totalVotes > 0 ? (100 - percentUp) : 0;
+
+      if (countVoteUp) countVoteUp.textContent = votesUp;
+      if (countVoteDown) countVoteDown.textContent = votesDown;
+      if (labelPercentUp) labelPercentUp.textContent = `${percentUp}%`;
+      if (labelPercentDown) labelPercentDown.textContent = `${percentDown}%`;
+      if (barVoteUp) barVoteUp.style.width = `${percentUp}%`;
+      if (barVoteDown) barVoteDown.style.width = `${percentDown}%`;
+
+      if (scenarioVoteCountBadge) scenarioVoteCountBadge.textContent = `${totalVotes} voto${totalVotes === 1 ? '' : 's'}`;
+      if (activeVotersCount) activeVotersCount.textContent = `${allVotesList.length} respuestas registradas`;
+
+      if (consensusText) {
+        if (totalVotes === 0) {
+          consensusText.textContent = "Esperando que los estudiantes pulsen una opción...";
+        } else if (votesUp === votesDown) {
+          consensusText.textContent = "¡Empate técnico en el aula! 50% vs 50%.";
+        } else if (votesUp > votesDown) {
+          consensusText.innerHTML = `El <strong class="text-emerald-400">${percentUp}%</strong> del aula predice que el valor <strong>aumentará</strong>.`;
+        } else {
+          consensusText.innerHTML = `El <strong class="text-rose-400">${percentDown}%</strong> del aula predice que el valor <strong>disminuirá</strong>.`;
+        }
+      }
+
+      // 6. Pedagogical Solution visibility
+      if (correctVerdictText) {
+        correctVerdictText.textContent = scenario.expectedVerdict === 'up' ? "SUBE EL VALOR DE MERCADO (Revalorización)" : "BAJA EL VALOR DE MERCADO (Caída de Cotización)";
+        correctVerdictText.className = `font-extrabold text-base ${scenario.expectedVerdict === 'up' ? 'text-emerald-400' : 'text-rose-400'}`;
+      }
+      if (theoreticalMechanismText) theoreticalMechanismText.textContent = scenario.rationale;
+      if (keyFinancialPrincipleText) keyFinancialPrincipleText.textContent = scenario.keyPrinciple;
+
+      if (isRevealedByProfessor) {
+        if (explanationLockedNotice) explanationLockedNotice.classList.add("hidden");
+        if (explanationContent) explanationContent.classList.remove("hidden");
+        if (solutionStatusPill) {
+          solutionStatusPill.className = "text-xs px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold";
+          solutionStatusPill.textContent = "✓ Solución Revelada";
+        }
+        if (btnProfRevealText) btnProfRevealText.textContent = "Ocultar Solución";
+
+        if (scenario.expectedVerdict === 'up') {
+          if (verdictTagUp) verdictTagUp.classList.remove("hidden");
+          if (verdictTagDown) verdictTagDown.classList.add("hidden");
+        } else {
+          if (verdictTagUp) verdictTagUp.classList.add("hidden");
+          if (verdictTagDown) verdictTagDown.classList.remove("hidden");
+        }
+      } else {
+        if (explanationLockedNotice) explanationLockedNotice.classList.remove("hidden");
+        if (explanationContent) explanationContent.classList.add("hidden");
+        if (solutionStatusPill) {
+          solutionStatusPill.className = "text-xs px-2.5 py-1 rounded-full bg-slate-800 text-slate-400 border border-slate-700";
+          solutionStatusPill.textContent = "Solución Oculta";
+        }
+        if (btnProfRevealText) btnProfRevealText.textContent = "Revelar Solución";
+        if (verdictTagUp) verdictTagUp.classList.add("hidden");
+        if (verdictTagDown) verdictTagDown.classList.add("hidden");
+      }
+
+      // 7. Navigation controls
+      if (btnPrevScenario) btnPrevScenario.disabled = (currentScenarioIndex === 0);
+      if (btnNextScenario) btnNextScenario.disabled = (currentScenarioIndex === SCENARIOS.length - 1);
+
+      // 8. Participants Mini List
+      renderParticipantsMiniList();
+
+      // If at scenario 4 and votes exist, offer ranking highlight
+      if (btnShowPodiumProf) {
+        if (currentScenarioIndex === 3 && totalVotes > 0) {
+          btnShowPodiumProf.classList.add("pulse-subtle");
+        } else {
+          btnShowPodiumProf.classList.remove("pulse-subtle");
+        }
+      }
+    }
+
+    function renderScenarioTabs() {
+      if (!scenarioTabs) return;
+      scenarioTabs.innerHTML = SCENARIOS.map((sc, index) => {
+        const isActive = (index === currentScenarioIndex);
+        const votesForThis = allVotesList.filter(v => v.scenarioId === sc.id).length;
+        return `
+          <button 
+            data-index="${index}" 
+            class="tab-btn whitespace-nowrap px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
+              isActive 
+                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30' 
+                : 'bg-slate-900/60 text-slate-400 hover:text-slate-200 border border-slate-700/60'
+            }">
+            <span>${index + 1}. ${sc.category.split(" ")[0]}</span>
+            <span class="text-[10px] px-1.5 py-0.2 rounded-full ${isActive ? 'bg-indigo-700 text-indigo-100' : 'bg-slate-800 text-slate-400'}">
+              ${votesForThis}
+            </span>
+          </button>
+        `;
+      }).join('');
+
+      document.querySelectorAll(".tab-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          currentScenarioIndex = parseInt(btn.getAttribute("data-index"), 10);
+          updateUI();
+        });
+      });
+    }
+
+    function renderParticipantsMiniList() {
+      if (!participantsMiniList) return;
+      const ranked = calculateLeaderboard();
+      if (studentsTotalCount) studentsTotalCount.textContent = ranked.length;
+
+      if (ranked.length === 0) {
+        participantsMiniList.innerHTML = `<div class="text-slate-500 italic text-center py-3">Esperando respuestas de los estudiantes...</div>`;
+        return;
+      }
+
+      participantsMiniList.innerHTML = ranked.map((st, i) => `
+        <div class="flex items-center justify-between p-2 rounded-xl bg-slate-900/60 border border-slate-700/40">
+          <div class="flex items-center gap-2 truncate">
+            <span class="w-5 text-center font-bold ${i === 0 ? 'text-amber-400' : i === 1 ? 'text-slate-300' : i === 2 ? 'text-amber-600' : 'text-slate-500'}">${i + 1}º</span>
+            <span class="font-semibold text-slate-200 truncate">${st.studentName}</span>
+          </div>
+          <span class="font-mono text-indigo-400 font-bold bg-indigo-950/60 px-2 py-0.5 rounded-md text-[11px]">${st.score} pts</span>
+        </div>
+      `).join('');
+    }
+
+    function openPodiumModal() {
+      if (!rankingModal) return;
+      const ranked = calculateLeaderboard();
+
+      if (podiumName1 && podiumScore1) {
+        if (ranked.length > 0) {
+          podiumName1.textContent = ranked[0].studentName;
+          podiumScore1.textContent = `${ranked[0].score} pts`;
+        } else {
+          podiumName1.textContent = "Sin datos";
+          podiumScore1.textContent = "0 pts";
+        }
+      }
+
+      if (podiumName2 && podiumScore2) {
+        if (ranked.length > 1) {
+          podiumName2.textContent = ranked[1].studentName;
+          podiumScore2.textContent = `${ranked[1].score} pts`;
+        } else {
+          podiumName2.textContent = "---";
+          podiumScore2.textContent = "0 pts";
+        }
+      }
+
+      if (podiumName3 && podiumScore3) {
+        if (ranked.length > 2) {
+          podiumName3.textContent = ranked[2].studentName;
+          podiumScore3.textContent = `${ranked[2].score} pts`;
+        } else {
+          podiumName3.textContent = "---";
+          podiumScore3.textContent = "0 pts";
+        }
+      }
+
+      // Full list
+      if (leaderboardFullTable) {
+        if (ranked.length === 0) {
+          leaderboardFullTable.innerHTML = `<div class="text-slate-500 text-center py-4">Aún no hay respuestas registradas.</div>`;
+        } else {
+          leaderboardFullTable.innerHTML = ranked.map((st, index) => {
+            const badgeIcon = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}º`;
+            return `
+              <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/60 border border-slate-800">
+                <div class="flex items-center gap-2.5 truncate">
+                  <span class="w-6 text-center text-sm">${badgeIcon}</span>
+                  <span class="font-bold text-slate-200 truncate">${st.studentName}</span>
+                  <span class="text-[10px] text-slate-400">(${st.answersCount} respuestas)</span>
+                </div>
+                <span class="font-mono font-bold text-emerald-400 text-xs">${st.score} pts</span>
+              </div>
+            `;
+          }).join('');
+        }
+      }
+
+      rankingModal.classList.remove("hidden");
+    }
+
+    function closePodiumModal() {
+      if (rankingModal) rankingModal.classList.add("hidden");
+    }
+
+    // Defensive event binding for Podium / Leaderboard
+    if (btnOpenLeaderboard) btnOpenLeaderboard.addEventListener("click", openPodiumModal);
+    if (btnShowPodiumProf) btnShowPodiumProf.addEventListener("click", openPodiumModal);
+    if (linkShowFullRanking) linkShowFullRanking.addEventListener("click", openPodiumModal);
+    if (btnCloseRankingModal) btnCloseRankingModal.addEventListener("click", closePodiumModal);
+    if (btnCloseRankingModalBtn) btnCloseRankingModalBtn.addEventListener("click", closePodiumModal);
+
+    // Prompt student name modal
+    function openStudentNameModal() {
+      if (studentNameModal) {
+        studentNameModal.classList.remove("hidden");
+        if (inputStudentName) inputStudentName.focus();
+      }
+    }
+
+    if (studentGreetingBadge) {
+      studentGreetingBadge.addEventListener("click", openStudentNameModal);
+    }
+
+    if (formStudentName) {
+      formStudentName.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const val = inputStudentName.value.trim();
+        if (val) {
+          myStudentName = val;
+          sessionStorage.setItem("signal_student_name", val);
+          if (studentNameModal) studentNameModal.classList.add("hidden");
+          showToast(`¡Hola, ${myStudentName}!`);
+          updateUI();
+        }
+      });
+    }
+
+    if (btnVoteUp) btnVoteUp.addEventListener("click", () => castVote("up"));
+    if (btnVoteDown) btnVoteDown.addEventListener("click", () => castVote("down"));
+
+    if (btnPrevScenario) {
+      btnPrevScenario.addEventListener("click", () => {
+        if (currentScenarioIndex > 0) {
+          currentScenarioIndex--;
+          updateUI();
+        }
+      });
+    }
+
+    if (btnNextScenario) {
+      btnNextScenario.addEventListener("click", () => {
+        if (currentScenarioIndex < SCENARIOS.length - 1) {
+          currentScenarioIndex++;
+          updateUI();
+        }
+      });
+    }
+
+    if (btnProfRevealToggle) btnProfRevealToggle.addEventListener("click", toggleProfessorReveal);
+
+    // Mode toggling
+    if (btnStudentMode) {
+      btnStudentMode.addEventListener("click", () => {
+        isProfessorMode = false;
+        btnStudentMode.className = "px-3 py-1 rounded-lg transition-all bg-indigo-600 text-white shadow";
+        if (btnProfessorMode) btnProfessorMode.className = "px-3 py-1 rounded-lg text-slate-400 hover:text-white transition-all";
+        if (professorDeck) professorDeck.classList.add("hidden");
+        updateUI();
+      });
+    }
+
+    if (btnProfessorMode) {
+      btnProfessorMode.addEventListener("click", () => {
+        isProfessorMode = true;
+        btnProfessorMode.className = "px-3 py-1 rounded-lg transition-all bg-indigo-600 text-white shadow";
+        if (btnStudentMode) btnStudentMode.className = "px-3 py-1 rounded-lg text-slate-400 hover:text-white transition-all";
+        if (professorDeck) professorDeck.classList.remove("hidden");
+        updateUI();
+      });
+    }
+
+    if (btnProfResetAll) btnProfResetAll.addEventListener("click", openResetModal);
+    if (btnTriggerReset) btnTriggerReset.addEventListener("click", openResetModal);
+    if (btnCancelReset) btnCancelReset.addEventListener("click", closeResetModal);
+    if (btnConfirmReset) btnConfirmReset.addEventListener("click", resetEntireActivity);
+
+    function openResetModal() {
+      if (resetModal) resetModal.classList.remove("hidden");
+    }
+
+    function closeResetModal() {
+      if (resetModal) resetModal.classList.add("hidden");
+    }
+
+    function resolveShareUrl() {
+      let candidate = window.location.href;
+      try {
+        if (window.top && window.top !== window && window.top.location.href) {
+          candidate = window.top.location.href;
+        }
+      } catch (e) {}
+
+      const isInternalSandbox = candidate.startsWith('about:') || 
+                                candidate.startsWith('blob:') || 
+                                candidate.startsWith('data:') ||
+                                candidate.includes('googleusercontent.com');
+
+      if (isInternalSandbox && window.location.origin && window.location.origin !== 'null') {
+        candidate = window.location.origin + window.location.pathname;
+      }
+
+      try {
+        const u = new URL(candidate);
+        u.searchParams.set('mode', 'student');
+        return u.toString();
+      } catch (e) {
+        return candidate.includes('?') ? `${candidate}&mode=student` : `${candidate}?mode=student`;
+      }
+    }
+
+    function refreshQrCode(url) {
+      if (!url || !qrCodeImg) return;
+      qrCodeImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(url)}`;
+    }
+
+    function openShareModal() {
+      const shareUrl = resolveShareUrl();
+      const isLocalFile = shareUrl.startsWith('file:') || window.location.protocol === 'file:';
+
+      if (inputShareUrl) inputShareUrl.value = shareUrl;
+      refreshQrCode(shareUrl);
+
+      if (localWarningNotice) {
+        if (isLocalFile) {
+          localWarningNotice.classList.remove('hidden');
+        } else {
+          localWarningNotice.classList.add('hidden');
+        }
+      }
+
+      if (shareModal) shareModal.classList.remove("hidden");
+    }
+
+    function closeShareModal() {
+      if (shareModal) shareModal.classList.add("hidden");
+    }
+
+    if (inputShareUrl) {
+      inputShareUrl.addEventListener("input", (e) => {
+        const typedUrl = e.target.value.trim();
+        if (typedUrl) {
+          refreshQrCode(typedUrl);
+        }
+      });
+    }
+
+    if (btnShareLink) btnShareLink.addEventListener("click", openShareModal);
+    if (btnCloseShareModal) btnCloseShareModal.addEventListener("click", closeShareModal);
+    if (btnCloseShareModalBtn) btnCloseShareModalBtn.addEventListener("click", closeShareModal);
+
+    if (btnCopyModalUrl && inputShareUrl) {
+      btnCopyModalUrl.addEventListener("click", () => {
+        copyTextToClipboard(inputShareUrl.value);
+      });
+    }
+
+    function copyTextToClipboard(textToCopy) {
+      const tempInput = document.createElement("input");
+      tempInput.value = textToCopy;
+      document.body.appendChild(tempInput);
+      tempInput.select();
+      try {
+        document.execCommand('copy');
+        showToast("¡Enlace copiado para los alumnos!");
+      } catch (err) {
+        showToast("Pulsa Ctrl+C para copiar");
+      }
+      document.body.removeChild(tempInput);
+    }
+
+    function showToast(msg) {
+      if (!toastMessage || !toastNotification) return;
+      toastMessage.textContent = msg;
+      toastNotification.classList.remove("translate-y-20", "opacity-0");
+      setTimeout(() => {
+        toastNotification.classList.add("translate-y-20", "opacity-0");
+      }, 3500);
+    }
+
+    window.addEventListener("load", () => {
+      if (!myStudentName && forcedStudent) {
+        openStudentNameModal();
+      }
+      updateUI();
+      initFirebase();
+    });
+  </script>
+</body>
+</html>
