@@ -1,0 +1,1335 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teoría de Señales Financieras - Simulador Interactivo</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Tone.js for soft classroom sound cues -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+  
+  <!-- QRCode.js library for projector QR generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: rgba(99, 102, 241, 0.4);
+      border-radius: 9999px;
+    }
+    @keyframes pulseSlow {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.85; transform: scale(1.02); }
+    }
+    .pulse-attention {
+      animation: pulseSlow 2.5s infinite;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col selection:bg-indigo-500 selection:text-white antialiased">
+
+  <!-- Main Application Header -->
+  <header class="border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-30 px-4 lg:px-8 py-3.5 shadow-lg">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      
+      <!-- Logo and Title Area -->
+      <div class="flex items-center space-x-3">
+        <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-emerald-400 flex items-center justify-center shadow-md shadow-indigo-500/20">
+          <span class="text-xl">📡</span>
+        </div>
+        <div>
+          <h1 class="font-extrabold text-base sm:text-lg tracking-tight text-white flex items-center gap-2">
+            Teoría de Señales Financieras
+            <span id="badgeCurrentRole" class="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-950 text-indigo-300 border border-indigo-500/40">
+              Modo Aula
+            </span>
+          </h1>
+          <p class="text-xs text-slate-400 hidden sm:block">Actividad interactiva de valoración de activos ante señales corporativas</p>
+        </div>
+      </div>
+
+      <!-- Action Buttons & State Indicators -->
+      <div class="flex items-center flex-wrap gap-2">
+        
+        <!-- Student Name Display / Edit Button -->
+        <button id="btnStudentIdentity" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700 transition">
+          <span class="text-indigo-400">👤</span>
+          <span id="headerStudentName">Alumno Anónimo</span>
+          <span class="text-[10px] text-slate-400 underline ml-0.5">cambiar</span>
+        </button>
+
+        <!-- Podium / Leaderboard Button -->
+        <button id="btnOpenLeaderboard" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-bold transition">
+          <span>🏆</span>
+          <span class="hidden sm:inline">Clasificación</span>
+          <span class="sm:hidden">Podio</span>
+        </button>
+
+        <!-- Professor Share / QR Button -->
+        <button id="btnOpenShareModal" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-md shadow-indigo-600/30 transition">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+          <span>Compartir QR</span>
+        </button>
+
+        <!-- Professor Mode Toggle Button (Protected by PIN) -->
+        <button id="btnToggleRole" class="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 border border-slate-700 transition" title="Alternar vista">
+          <span id="labelToggleRole">Ver como Estudiante</span>
+        </button>
+
+        <!-- Instructor Reset Button -->
+        <button id="btnPromptReset" class="p-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 text-xs transition" title="Reiniciar toda la actividad para una nueva clase">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col gap-6">
+
+    <!-- Stepper Navigation across the 4 Signaling Categories -->
+    <section class="bg-slate-900/80 rounded-2xl p-3 border border-slate-800/80 shadow-md">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+        
+        <button onclick="goToScenario(0)" id="stepTab-0" class="step-tab text-left p-2.5 rounded-xl border transition flex items-center gap-2.5 bg-indigo-950/60 border-indigo-500/60 text-white font-bold">
+          <span class="h-6 w-6 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shrink-0">1</span>
+          <div class="truncate">
+            <span class="block text-[10px] text-slate-400 font-medium">Señal 1</span>
+            <span class="truncate block">Financiación</span>
+          </div>
+        </button>
+
+        <button onclick="goToScenario(1)" id="stepTab-1" class="step-tab text-left p-2.5 rounded-xl border transition flex items-center gap-2.5 bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200">
+          <span class="h-6 w-6 rounded-lg bg-slate-800 text-slate-300 flex items-center justify-center font-bold text-xs shrink-0">2</span>
+          <div class="truncate">
+            <span class="block text-[10px] text-slate-400 font-medium">Señal 2</span>
+            <span class="truncate block">Inversión (I+D)</span>
+          </div>
+        </button>
+
+        <button onclick="goToScenario(2)" id="stepTab-2" class="step-tab text-left p-2.5 rounded-xl border transition flex items-center gap-2.5 bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200">
+          <span class="h-6 w-6 rounded-lg bg-slate-800 text-slate-300 flex items-center justify-center font-bold text-xs shrink-0">3</span>
+          <div class="truncate">
+            <span class="block text-[10px] text-slate-400 font-medium">Señal 3</span>
+            <span class="truncate block">Rating Crediticio</span>
+          </div>
+        </button>
+
+        <button onclick="goToScenario(3)" id="stepTab-3" class="step-tab text-left p-2.5 rounded-xl border transition flex items-center gap-2.5 bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200">
+          <span class="h-6 w-6 rounded-lg bg-slate-800 text-slate-300 flex items-center justify-center font-bold text-xs shrink-0">4</span>
+          <div class="truncate">
+            <span class="block text-[10px] text-slate-400 font-medium">Señal 4</span>
+            <span class="truncate block">Noticias (+ vs -)</span>
+          </div>
+        </button>
+
+      </div>
+    </section>
+
+    <!-- Two Columns Layout: Left Scenario Description & Voting / Right Classroom Live Analytics -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <!-- Left Column: Scenario Briefing & Student Voting (7 cols) -->
+      <section class="lg:col-span-7 flex flex-col gap-6">
+        
+        <div class="bg-slate-900/90 rounded-3xl p-6 sm:p-8 border border-slate-800 shadow-2xl relative overflow-hidden backdrop-blur">
+          
+          <!-- Category Pill & Difficulty -->
+          <div class="flex items-center justify-between gap-3 mb-4">
+            <span id="scenarioCategoryBadge" class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+              1. Decisiones de Financiación
+            </span>
+            <span id="scenarioProgressBadge" class="text-xs text-slate-400 font-mono font-medium">
+              Caso 1 de 4
+            </span>
+          </div>
+
+          <!-- Scenario Title -->
+          <h2 id="scenarioTitle" class="text-xl sm:text-2xl font-extrabold text-white tracking-tight leading-snug mb-3">
+            Programa Masivo de Recompra de Acciones Propias (Share Buyback)
+          </h2>
+
+          <!-- Corporate Context Description -->
+          <p id="scenarioDescription" class="text-slate-300 text-sm sm:text-base leading-relaxed mb-6">
+            La multinacional tecnológica "IberTech" anuncia por sorpresa al cierre de mercado la recompra del 8% de sus títulos en circulación desembolsando su exceso de tesorería y reservas líquidas acumuladas, abonando una prima del 12% sobre el precio de cotización.
+          </p>
+
+          <!-- The Core Decision Question Card -->
+          <div class="p-4 sm:p-5 rounded-2xl bg-indigo-950/40 border border-indigo-500/30 mb-6">
+            <div class="flex items-start gap-3">
+              <span class="text-2xl">⚖️</span>
+              <div>
+                <h3 class="text-sm sm:text-base font-bold text-white">¿Cuál es el efecto esperado en el valor de mercado de la empresa?</h3>
+                <p class="text-xs text-indigo-200 mt-1">Aplica los postulados de la teoría de señales y asimetría informativa para predecir la reacción del mercado.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Student Voting Buttons Area -->
+          <div id="votingInteractionSection">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              
+              <!-- SUBE Option Button -->
+              <button id="btnVoteUp" onclick="castVote('up')" class="group relative overflow-hidden p-5 rounded-2xl bg-gradient-to-br from-emerald-950/80 to-slate-900 border-2 border-emerald-600/40 hover:border-emerald-400 hover:from-emerald-900/90 text-left transition-all duration-200 shadow-lg hover:shadow-emerald-500/20 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed">
+                <div class="flex items-center justify-between">
+                  <span class="text-3xl">📈</span>
+                  <span class="text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Señal Favorable</span>
+                </div>
+                <div class="mt-3">
+                  <div class="text-base sm:text-lg font-black text-white group-hover:text-emerald-300 transition">SUBE el valor</div>
+                  <p class="text-xs text-slate-400 mt-1">El mercado interpreta una señal de infravaloración o confianza directiva.</p>
+                </div>
+              </button>
+
+              <!-- BAJA Option Button -->
+              <button id="btnVoteDown" onclick="castVote('down')" class="group relative overflow-hidden p-5 rounded-2xl bg-gradient-to-br from-rose-950/80 to-slate-900 border-2 border-rose-600/40 hover:border-rose-400 hover:from-rose-900/90 text-left transition-all duration-200 shadow-lg hover:shadow-rose-500/20 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed">
+                <div class="flex items-center justify-between">
+                  <span class="text-3xl">📉</span>
+                  <span class="text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30">Señal Desfavorable</span>
+                </div>
+                <div class="mt-3">
+                  <div class="text-base sm:text-lg font-black text-white group-hover:text-rose-300 transition">BAJA el valor</div>
+                  <p class="text-xs text-slate-400 mt-1">El mercado interpreta deterioro de expectativas o aumento del riesgo.</p>
+                </div>
+              </button>
+
+            </div>
+          </div>
+
+          <!-- Student's Vote Status Banner -->
+          <div id="myVoteNotification" class="hidden mt-5 p-4 rounded-2xl text-center text-xs sm:text-sm font-semibold border transition-all">
+            <!-- Dynamically populated -->
+          </div>
+
+          <!-- Classroom Instruction Notice for Student Phone -->
+          <div id="studentClassroomBanner" class="hidden mt-4 p-4 rounded-2xl bg-indigo-950/30 border border-indigo-500/30 text-center text-xs text-indigo-200">
+            <div class="flex items-center justify-center gap-2 font-bold text-indigo-300">
+              <span class="animate-pulse text-base">📡</span>
+              <span>Respuesta transmitida al aula</span>
+            </div>
+            <p class="text-slate-400 text-[11px] mt-1">Observa el proyector de clase para ver los resultados grupales y la explicación que revelará el profesor.</p>
+          </div>
+
+        </div>
+
+      </section>
+      <!-- Right Column: Classroom Live Dashboard & Pedagogical Solution (5 cols) -->
+      <section id="rightDashboardCol" class="lg:col-span-5 flex flex-col gap-6">
+        
+        <!-- Live Polling Card -->
+        <div class="bg-slate-900/90 rounded-3xl p-6 sm:p-7 border border-slate-800 shadow-2xl backdrop-blur">
+          
+          <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+            <div class="flex items-center space-x-2">
+              <span class="relative flex h-3 w-3">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+              </span>
+              <h3 class="text-base font-bold text-white">Votación en Vivo del Aula</h3>
+            </div>
+            <span id="scenarioVoteCountBadge" class="text-xs bg-slate-800 text-slate-300 px-2.5 py-1 rounded-full font-semibold border border-slate-700">
+              0 votos
+            </span>
+          </div>
+
+          <!-- Real-Time Progress Bars -->
+          <div class="my-6 space-y-5">
+            
+            <!-- Up Option Bar -->
+            <div>
+              <div class="flex justify-between items-center text-sm font-bold mb-1.5">
+                <span class="flex items-center gap-1.5 text-emerald-400">
+                  <span>📈</span> Sube el valor
+                </span>
+                <span id="labelPercentUp" class="text-emerald-300 font-mono text-base font-bold">0%</span>
+              </div>
+              <div class="h-6 w-full bg-slate-950 rounded-xl overflow-hidden p-0.5 border border-slate-800 flex">
+                <div id="barVoteUp" class="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-lg transition-all duration-500 ease-out flex items-center justify-end pr-2 text-[10px] font-extrabold text-slate-950" style="width: 0%">
+                </div>
+              </div>
+              <div class="text-[11px] text-slate-400 mt-1 flex justify-between">
+                <span>Votos: <strong id="countVoteUp" class="text-slate-200">0</strong></span>
+                <span id="verdictTagUp" class="text-emerald-400 font-bold hidden">¡ACIERTO ACADÉMICO! ✓</span>
+              </div>
+            </div>
+
+            <!-- Down Option Bar -->
+            <div>
+              <div class="flex justify-between items-center text-sm font-bold mb-1.5">
+                <span class="flex items-center gap-1.5 text-rose-400">
+                  <span>📉</span> Baja el valor
+                </span>
+                <span id="labelPercentDown" class="text-rose-300 font-mono text-base font-bold">0%</span>
+              </div>
+              <div class="h-6 w-full bg-slate-950 rounded-xl overflow-hidden p-0.5 border border-slate-800 flex">
+                <div id="barVoteDown" class="h-full bg-gradient-to-r from-rose-500 to-red-400 rounded-lg transition-all duration-500 ease-out flex items-center justify-end pr-2 text-[10px] font-extrabold text-slate-950" style="width: 0%">
+                </div>
+              </div>
+              <div class="text-[11px] text-slate-400 mt-1 flex justify-between">
+                <span>Votos: <strong id="countVoteDown" class="text-slate-200">0</strong></span>
+                <span id="verdictTagDown" class="text-rose-400 font-bold hidden">¡ACIERTO ACADÉMICO! ✓</span>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Classroom Consensus Box -->
+          <div id="consensusBox" class="p-3.5 bg-slate-950 rounded-2xl border border-slate-800 text-xs text-slate-300">
+            <div class="flex items-center gap-2 font-bold text-slate-200 mb-1">
+              <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+              <span>Consenso del Grupo:</span>
+            </div>
+            <p id="consensusText" class="text-slate-400">Esperando votos de los alumnos...</p>
+          </div>
+
+          <!-- Scenario Navigation Toolbar -->
+          <div class="flex items-center justify-between gap-3 mt-6 pt-4 border-t border-slate-800">
+            <button id="btnPrevScenario" onclick="navigateScenario(-1)" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-bold text-slate-200 flex items-center gap-1.5 transition">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+              Anterior
+            </button>
+            <span class="text-xs text-slate-400 font-mono font-bold" id="navPageCounter">1 / 4</span>
+            <button id="btnNextScenario" onclick="navigateScenario(1)" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-bold text-white flex items-center gap-1.5 transition shadow-md shadow-indigo-600/30">
+              Siguiente
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+            </button>
+          </div>
+
+        </div>
+
+        <!-- Academic Solution & Theory Card -->
+        <div class="bg-slate-900/90 rounded-3xl p-6 border border-slate-800 shadow-2xl backdrop-blur">
+          
+          <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
+            <div class="flex items-center gap-2">
+              <span class="text-xl">💡</span>
+              <h3 class="text-base font-bold text-white">Veredicto y Teoría de Señales</h3>
+            </div>
+            <div class="flex items-center gap-2">
+              <span id="solutionStatusPill" class="text-xs px-2.5 py-1 rounded-full bg-slate-800 text-slate-400 border border-slate-700 font-semibold">
+                Solución Oculta
+              </span>
+              <!-- Direct button to reveal solution on the card itself -->
+              <button id="btnCardToggleReveal" onclick="toggleProfessorReveal()" class="px-2.5 py-1 rounded-lg bg-indigo-600/80 hover:bg-indigo-600 text-white text-[11px] font-bold transition flex items-center gap-1">
+                <span>👁️</span> <span id="labelCardToggleReveal">Revelar</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Locked Placeholder (Visible when not revealed) -->
+          <div id="explanationLockedNotice" class="p-5 bg-slate-950 rounded-2xl border border-slate-800 text-center text-xs sm:text-sm text-slate-400 space-y-2">
+            <span class="text-3xl block">🔒</span>
+            <p class="font-bold text-slate-300">La solución académica y el veredicto oficial están ocultos.</p>
+            <p class="text-[11px] text-slate-500">Haz clic en "Revelar Solución" cuando termine la votación y el debate del aula.</p>
+          </div>
+
+          <!-- Locked Placeholder (Visible when not revealed) -->
+          <div id="explanationLockedNotice" class="p-5 bg-slate-950 rounded-2xl border border-slate-800 text-center text-xs sm:text-sm text-slate-400 space-y-2">
+            <span class="text-3xl block">🔒</span>
+            <p class="font-bold text-slate-300">La solución académica y el veredicto oficial están ocultos.</p>
+            <p class="text-[11px] text-slate-500">El profesor los revelará en pantalla tras la deliberación del aula.</p>
+          </div>
+
+          <!-- Revealed Academic Explanation -->
+          <div id="explanationContent" class="hidden space-y-4 text-sm text-slate-300 leading-relaxed pt-1">
+            <div class="p-3.5 bg-slate-950 rounded-2xl border border-slate-800 flex items-start gap-3">
+              <span class="text-2xl">🎯</span>
+              <div>
+                <span class="font-bold text-white text-xs uppercase tracking-wider block">Respuesta Teórica Correcta:</span>
+                <span id="correctVerdictText" class="font-black text-emerald-400 text-lg tracking-wide">SUBE</span>
+              </div>
+            </div>
+            <p id="theoreticalMechanismText" class="text-xs sm:text-sm leading-relaxed text-slate-300">
+              <!-- Explanation injected dynamically -->
+            </p>
+            <div class="p-3.5 bg-indigo-950/40 rounded-2xl border border-indigo-900/50 text-xs text-indigo-200">
+              <strong class="text-indigo-100 font-bold block mb-1">Fundamento Teórico:</strong>
+              <span id="keyFinancialPrincipleText">Equilibrio Separador (Separating Equilibrium) y reducción de la asimetría informativa.</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Instructor Deck Card (For classroom projection controls) -->
+        <div id="professorDeck" class="bg-gradient-to-br from-indigo-950/60 to-slate-900 rounded-3xl p-5 border border-indigo-500/30 shadow-xl flex flex-col gap-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-extrabold uppercase tracking-wider text-indigo-300 flex items-center gap-1.5">
+              <span>👨‍🏫</span> Controles del Profesor
+            </span>
+            <span id="liveActiveUsersCountBadge" class="text-[11px] bg-indigo-900/80 text-indigo-200 px-2 py-0.5 rounded-full font-bold">
+              0 alumnos activos
+            </span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
+            <button id="btnToggleReveal" onclick="toggleProfessorReveal()" class="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-md">
+              <span id="btnRevealIcon">👁️</span>
+              <span id="btnRevealText">Revelar Solución</span>
+            </button>
+            <button onclick="openLeaderboardModal()" class="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black transition flex items-center justify-center gap-1.5 shadow-md">
+              <span>🏆</span>
+              <span>Ver Podio Top 3</span>
+            </button>
+          </div>
+        </div>
+
+      </section>
+
+    </div>
+  </main>
+  <!-- Modal 1: Student Identity Input -->
+  <div id="modalStudentName" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 rounded-3xl border border-slate-800 max-w-md w-full p-6 shadow-2xl">
+      <div class="text-center mb-5">
+        <div class="h-12 w-12 rounded-2xl bg-indigo-600/30 border border-indigo-500/40 text-indigo-400 flex items-center justify-center text-2xl mx-auto mb-3">
+          👤
+        </div>
+        <h3 class="text-lg font-black text-white">Introduce tu Nombre</h3>
+        <p class="text-xs text-slate-400 mt-1">Tu nombre se usará para registrar tus aciertos y posicionarte en el podio de clase.</p>
+      </div>
+
+      <form id="formStudentName" onsubmit="saveStudentName(event)" class="space-y-4">
+        <div>
+          <label for="inputStudentName" class="block text-xs font-bold text-slate-300 mb-1.5">Nombre o Alias de Alumno:</label>
+          <input type="text" id="inputStudentName" required maxlength="30" placeholder="Ej. Carlos M. / Laura Gómez" class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 text-sm font-medium">
+        </div>
+
+        <div class="flex gap-2 pt-2">
+          <button type="submit" class="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm shadow-lg shadow-indigo-600/30 transition">
+            Continuar a la Actividad
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 2: Share and Classroom QR Code -->
+  <div id="modalShareQR" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 rounded-3xl border border-slate-800 max-w-lg w-full p-6 sm:p-8 shadow-2xl relative">
+      <button onclick="closeShareModal()" class="absolute top-5 right-5 text-slate-400 hover:text-white p-1 rounded-lg">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+
+      <div class="text-center mb-5">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs font-bold mb-2">
+          <span>📲</span> Acceso para Alumnos
+        </div>
+        <h3 class="text-xl font-extrabold text-white">Escanea para Votar desde el Móvil</h3>
+        <p class="text-xs text-slate-400 mt-1">Apunta con la cámara del móvil a la pantalla para unirte como estudiante.</p>
+      </div>
+
+      <!-- QR Code Holder -->
+      <div class="bg-white p-5 rounded-2xl w-64 h-64 mx-auto flex items-center justify-center shadow-inner mb-5 relative overflow-hidden" id="qrContainer">
+        <!-- QR injected via QRCode.js or image fallback -->
+      </div>
+
+      <!-- Link Copy Field -->
+      <div class="space-y-2">
+        <label class="block text-xs font-bold text-slate-300">Enlace directo para estudiantes:</label>
+        <div class="flex gap-2">
+          <input type="text" id="shareUrlInput" readonly class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-slate-300 font-mono truncate focus:outline-none">
+          <button onclick="copyShareUrl()" id="btnCopyUrl" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition shrink-0">
+            Copiar
+          </button>
+        </div>
+      </div>
+
+      <div class="mt-4 p-3 rounded-xl bg-slate-950 border border-slate-800 text-[11px] text-slate-400 flex items-start gap-2">
+        <span>💡</span>
+        <span>Al proyectar este QR en clase, los alumnos entran automáticamente en <strong>Modo Estudiante</strong> y con la votación sincronizada.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 3: Leaderboard & Top 3 Podium -->
+  <div id="modalLeaderboard" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 rounded-3xl border border-slate-800 max-w-xl w-full p-6 sm:p-8 shadow-2xl relative max-h-[90vh] flex flex-col">
+      <button onclick="closeLeaderboardModal()" class="absolute top-5 right-5 text-slate-400 hover:text-white p-1 rounded-lg">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+
+      <div class="text-center mb-4">
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-extrabold mb-1">
+          <span>🏆</span> Resultados Académicos
+        </div>
+        <h3 class="text-2xl font-black text-white">Podio de la Clase</h3>
+        <p class="text-xs text-slate-400 mt-0.5">Clasificación según los aciertos en la emisión de señales financieras (100 pts por acierto)</p>
+      </div>
+
+      <!-- Top 3 Podium Display -->
+      <div id="podiumTop3Container" class="flex items-end justify-center gap-2 sm:gap-4 my-4 pt-4 border-b border-slate-800 pb-6">
+        <!-- Injected dynamically -->
+      </div>
+
+      <!-- Full Leaderboard Table Scrollable -->
+      <div class="flex-1 overflow-y-auto custom-scrollbar pr-1">
+        <h4 class="text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-2">Clasificación Completa:</h4>
+        <div id="leaderboardList" class="space-y-1.5">
+          <!-- Injected dynamically -->
+        </div>
+      </div>
+
+      <div class="pt-4 mt-3 border-t border-slate-800 flex justify-end">
+        <button onclick="closeLeaderboardModal()" class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 transition">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 4: Reset Confirmation -->
+  <div id="modalResetConfirm" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 rounded-3xl border border-rose-500/40 max-w-sm w-full p-6 shadow-2xl text-center">
+      <div class="h-12 w-12 rounded-2xl bg-rose-500/20 text-rose-400 flex items-center justify-center text-2xl mx-auto mb-3">
+        ⚠️
+      </div>
+      <h3 class="text-base font-black text-white">¿Reiniciar toda la actividad?</h3>
+      <p class="text-xs text-slate-400 mt-2">Esta acción borrará todos los votos de la clase, vaciará el podio y reiniciará los escenarios al inicio para un nuevo grupo.</p>
+
+      <div class="flex gap-2.5 mt-5">
+        <button onclick="closeResetModal()" class="w-1/2 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 transition">
+          Cancelar
+        </button>
+        <button onclick="confirmResetAll()" class="w-1/2 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-xs font-bold text-white shadow-lg shadow-rose-600/30 transition">
+          Sí, Borrar Todo
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 5: Teacher PIN Security Modal -->
+  <div id="modalTeacherPin" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 rounded-3xl border border-indigo-500/40 max-w-sm w-full p-6 shadow-2xl text-center">
+      <div class="h-12 w-12 rounded-2xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center text-2xl mx-auto mb-3">
+        🔐
+      </div>
+      <h3 class="text-base font-black text-white">Acceso Restringido al Profesor</h3>
+      <p class="text-xs text-slate-400 mt-1">Introduce el PIN de profesor para proyectar o controlar la actividad:</p>
+      
+      <form id="formTeacherPin" onsubmit="submitTeacherPin(event)" class="space-y-4 mt-4">
+        <div>
+          <input type="password" id="inputTeacherPin" maxlength="8" placeholder="PIN (por defecto: 1234)" class="w-full text-center tracking-widest text-lg px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500 font-mono">
+          <p id="pinErrorMsg" class="text-[11px] text-rose-400 mt-1.5 hidden">PIN incorrecto. Consulta con el profesor.</p>
+        </div>
+        <div class="flex gap-2">
+          <button type="button" onclick="closeTeacherPinModal()" class="w-1/2 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 transition">
+            Cancelar
+          </button>
+          <button type="submit" class="w-1/2 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white shadow-md shadow-indigo-600/30 transition">
+            Entrar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toastNotification" class="fixed bottom-5 right-5 z-50 bg-slate-900 border border-slate-700 text-white text-xs font-semibold px-4 py-3 rounded-2xl shadow-2xl transition-all duration-300 translate-y-20 opacity-0 pointer-events-none flex items-center gap-2">
+    <span id="toastIcon">✨</span>
+    <span id="toastMessage">Acción completada</span>
+  </div>
+  <!-- Firebase Scripts (Modular) & Core Application Logic -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, collection, doc, setDoc, deleteDoc, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // -------------------------------------------------------------
+    // SCENARIOS DEFINITION: 4 Types of Corporate Signaling
+    // -------------------------------------------------------------
+    const SCENARIOS = [
+      {
+        id: "signal-financing-01",
+        category: "1. Decisiones de Financiación",
+        title: "Recompra Masiva de Acciones Propias (Share Buyback)",
+        description: 'La multinacional tecnológica "IberTech" anuncia por sorpresa al cierre de mercado la recompra en bolsa del 8% de sus títulos en circulación desembolsando su exceso de reservas líquidas, con una prima del 12% sobre el precio de cotización.',
+        expectedVerdict: "up", // SUBE
+        theoreticalMechanism: 'Según la teoría de jerarquía financiera (Pecking Order de Myers y Majluf) y el modelo de señalización de Leland y Pyle, recomprar acciones con caja propia emite la señal contundente de que los directivos consideran que sus acciones están claramente infravaloradas por el mercado. Si estuvieran sobrevaloradas, emitirían nuevo capital en lugar de comprarlo.',
+        financialPrinciple: 'Equilibrio Separador (Separating Equilibrium): Solo empresas con alta capacidad y flujos futuros sólidos pueden recomprar títulos sin comprometer su solvencia.'
+      },
+      {
+        id: "signal-investment-02",
+        category: "2. Decisiones de Inversión",
+        title: "Desembolso Récord en I+D y Fábrica Tecnológica",
+        description: 'Una compañía farmacéutica anuncia un plan de inversión de capital (CAPEX) de 450 millones de euros financiado con fondos propios para patentar un tratamiento oncológico pionero de alto rendimiento con VAN estimado fuertemente positivo.',
+        expectedVerdict: "up", // SUBE
+        theoreticalMechanism: 'La decisión directiva de inmovilizar capital sustancial en proyectos con Valor Actual Neto fuertemente positivo (VAN > 0) señala fortaleza competitiva sostenible a largo plazo. Una empresa con malas perspectivas no puede permitirse comprometer recursos masivos e irreversibles sin afrontar el riesgo de insolvencia.',
+        financialPrinciple: 'Coste de Señalización: La inversión masiva irreversible crea una barrera de credibilidad que las empresas de baja calidad no pueden imitar.'
+      },
+      {
+        id: "signal-rating-03",
+        category: "3. Agencias de Calificación Crediticia (Rating)",
+        title: "Revisión de Perspectiva a 'Negativa' con Riesgo de Bono Basura",
+        description: 'La agencia Standard & Poor\'s (S&P) sitúa la calificación crediticia de una corporación industrial en "CreditWatch Negativo" (BBB-), advirtiendo de una inminente degradación al escalón especulativo (High Yield / Bono Basura) por aumento del apalancamiento.',
+        expectedVerdict: "down", // BAJA
+        theoreticalMechanism: 'Las agencias de rating actúan como certificadores externos independientes que reducen la asimetría informativa para los inversores. Una perspectiva negativa o recorte de rating señala deterioro en la solvencia, lo que incrementa el diferencial de crédito (credit spread), encarece la financiación bancaria y dispara el WACC, reduciendo el valor presente de los flujos de caja futuros.',
+        financialPrinciple: 'Certificación de Terceros y Prima de Riesgo: La señal dispara el WACC de la empresa y restringe el acceso al capital de fondos institucionales.'
+      },
+      {
+        id: "signal-news-04",
+        category: "4. Noticias Positivas vs. Negativas",
+        title: "Publicación de 'Profit Warning' y Recorte de Guidance",
+        description: 'La dirección emite un hecho relevante imprevisto revisando a la baja sus previsiones operativas: el EBITDA del próximo trimestre se situará un 35% por debajo de las estimaciones del consenso de analistas por desaceleración de la demanda.',
+        expectedVerdict: "down", // BAJA
+        theoreticalMechanism: 'La comunicación corporativa de noticias negativas disipa de golpe cualquier expectativa favorable del mercado. Los inversores reajustan inmediatamente sus modelos de descuento de flujos de caja y contraen los múltiplos de valoración (PER, EV/EBITDA), provocando ventas masivas de las acciones.',
+        financialPrinciple: 'Transparencia y Asimetría Informativa: La señal negativa destruye expectativas de flujos inmediatos provocando un reajuste bajista instantáneo.'
+      }
+    ];
+
+    // -------------------------------------------------------------
+    // APPLICATION STATE
+    // -------------------------------------------------------------
+    const PROFESSOR_SECRET_PIN = "1234"; // Default Teacher PIN
+    let currentScenarioIndex = 0;
+    let isProfessorMode = true; // Default view is classroom projector
+    let isRevealedByProfessor = false;
+    let myVoterId = localStorage.getItem('signal_voter_id') || ('voter_' + Math.random().toString(36).substring(2, 10));
+    localStorage.setItem('signal_voter_id', myVoterId);
+    
+    let myStudentName = localStorage.getItem('signal_student_name') || '';
+    let pendingVoteChoice = null;
+
+    // In-memory list of votes: [{ scenarioId, voterId, voterName, vote, timestamp }]
+    let allVotesList = [];
+
+    // Sound synth
+    let audioSynth = null;
+    function initAudio() {
+      try {
+        if (!audioSynth && window.Tone) {
+          audioSynth = new Tone.PolySynth(Tone.Synth, {
+            oscillator: { type: "triangle" },
+            envelope: { attack: 0.005, decay: 0.1, sustain: 0.05, release: 0.3 }
+          }).toDestination();
+          audioSynth.volume.value = -12;
+        }
+      } catch (e) {
+        console.warn("Audio init deferred");
+      }
+    }
+
+    function playTone(type) {
+      try {
+        initAudio();
+        if (window.Tone && Tone.context && Tone.context.state !== 'running') {
+          Tone.start().catch(() => {});
+        }
+        if (audioSynth) {
+          if (type === 'vote') {
+            audioSynth.triggerAttackRelease(["C5", "G5"], "16n");
+          } else if (type === 'reveal') {
+            audioSynth.triggerAttackRelease(["E5", "G#5", "B5"], "8n");
+          } else if (type === 'reset') {
+            audioSynth.triggerAttackRelease(["F4", "C4"], "16n");
+          }
+        }
+      } catch (e) {
+        // Audio error must never block interface updates
+      }
+    }
+
+    // Helper: update or insert a vote into memory
+    function upsertLocalVote(voteRecord) {
+      const idx = allVotesList.findIndex(v => v.scenarioId === voteRecord.scenarioId && v.voterId === voteRecord.voterId);
+      if (idx >= 0) {
+        allVotesList[idx] = voteRecord;
+      } else {
+        allVotesList.push(voteRecord);
+      }
+    }
+    // -------------------------------------------------------------
+    // VOTING LOGIC
+    // -------------------------------------------------------------
+    window.castVote = async function(choice) {
+      if (!myStudentName) {
+        pendingVoteChoice = choice;
+        openStudentNameModal();
+        return;
+      }
+
+      const scenario = SCENARIOS[currentScenarioIndex];
+      const existingVote = allVotesList.find(v => v.scenarioId === scenario.id && v.voterId === myVoterId);
+      if (existingVote) {
+        showToast("Ya has emitido tu voto para este caso.", "🔒");
+        return;
+      }
+
+      playTone('vote');
+
+      const voteRecord = {
+        scenarioId: scenario.id,
+        voterId: myVoterId,
+        voterName: myStudentName,
+        vote: choice,
+        timestamp: Date.now()
+      };
+
+      // Optimistic local update
+      upsertLocalVote(voteRecord);
+      updateUI();
+      showToast("¡Voto registrado en el aula!", "✅");
+
+      // Broadcast across tabs
+      if (syncChannel) {
+        try {
+          syncChannel.postMessage({ type: 'NEW_VOTE', voteRecord });
+        } catch (e) {}
+      }
+
+      // Sync to Firebase
+      if (db && auth?.currentUser) {
+        try {
+          const docId = `${scenario.id}_${myVoterId}`;
+          const voteDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'scenario_votes', docId);
+          await setDoc(voteDocRef, voteRecord);
+        } catch (err) {
+          console.error("Error saving vote to Firebase:", err);
+        }
+      }
+    };
+
+    // -------------------------------------------------------------
+    // PROFESSOR REVEAL & NAVIGATION
+    // -------------------------------------------------------------
+    window.toggleProfessorReveal = async function() {
+      if (!isProfessorMode) {
+        showToast("Solo el profesor puede revelar la solución", "🔒");
+        return;
+      }
+      isRevealedByProfessor = !isRevealedByProfessor;
+      playTone('reveal');
+      updateUI();
+      showToast(isRevealedByProfessor ? "Solución revelada en el aula" : "Solución ocultada", isRevealedByProfessor ? "💡" : "🔒");
+
+      if (syncChannel) {
+        try {
+          syncChannel.postMessage({ type: 'TOGGLE_REVEAL', isRevealed: isRevealedByProfessor });
+        } catch (e) {}
+      }
+
+      if (db && auth?.currentUser) {
+        try {
+          const stateDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'session_meta', 'state');
+          await setDoc(stateDocRef, { isRevealed: isRevealedByProfessor }, { merge: true });
+        } catch (e) {
+          console.error("Error toggling reveal in Firestore:", e);
+        }
+      }
+    };
+
+    window.goToScenario = function(idx) {
+      if (idx >= 0 && idx < SCENARIOS.length) {
+        currentScenarioIndex = idx;
+        // Keep reveal state tied or reset per scenario
+        isRevealedByProfessor = false;
+        broadcastScenarioChange();
+        updateUI();
+      }
+    };
+
+    window.navigateScenario = function(delta) {
+      const next = currentScenarioIndex + delta;
+      if (next >= 0 && next < SCENARIOS.length) {
+        goToScenario(next);
+      }
+    };
+
+    function broadcastScenarioChange() {
+      if (syncChannel) {
+        try {
+          syncChannel.postMessage({ type: 'CHANGE_SCENARIO', scenarioIndex: currentScenarioIndex });
+        } catch (e) {}
+      }
+      if (db && auth?.currentUser) {
+        try {
+          const stateDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'session_meta', 'state');
+          setDoc(stateDocRef, { scenarioIndex: currentScenarioIndex, isRevealed: false }, { merge: true });
+        } catch (e) {}
+      }
+    }
+    // -------------------------------------------------------------
+    // UI UPDATING LOGIC
+    // -------------------------------------------------------------
+    function updateUI() {
+      const scenario = SCENARIOS[currentScenarioIndex];
+
+      // 1. Navigation indicators
+      document.querySelectorAll('.step-tab').forEach((el, i) => {
+        if (i === currentScenarioIndex) {
+          el.className = 'step-tab text-left p-2.5 rounded-xl border transition flex items-center gap-2.5 bg-indigo-950/70 border-indigo-500/70 text-white font-bold ring-1 ring-indigo-500/40';
+        } else {
+          el.className = 'step-tab text-left p-2.5 rounded-xl border transition flex items-center gap-2.5 bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200';
+        }
+      });
+
+      const navPageCounter = document.getElementById('navPageCounter');
+      if (navPageCounter) navPageCounter.textContent = `${currentScenarioIndex + 1} / ${SCENARIOS.length}`;
+
+      const btnPrevScenario = document.getElementById('btnPrevScenario');
+      if (btnPrevScenario) btnPrevScenario.disabled = (currentScenarioIndex === 0);
+
+      const btnNextScenario = document.getElementById('btnNextScenario');
+      if (btnNextScenario) btnNextScenario.disabled = (currentScenarioIndex === SCENARIOS.length - 1);
+
+      // 2. Scenario details
+      const scenarioCategoryBadge = document.getElementById('scenarioCategoryBadge');
+      if (scenarioCategoryBadge) scenarioCategoryBadge.textContent = scenario.category;
+
+      const scenarioProgressBadge = document.getElementById('scenarioProgressBadge');
+      if (scenarioProgressBadge) scenarioProgressBadge.textContent = `Caso ${currentScenarioIndex + 1} de ${SCENARIOS.length}`;
+
+      const scenarioTitle = document.getElementById('scenarioTitle');
+      if (scenarioTitle) scenarioTitle.textContent = scenario.title;
+
+      // 4. Role Display & Student Protection
+      const badgeCurrentRole = document.getElementById('badgeCurrentRole');
+      const labelToggleRole = document.getElementById('labelToggleRole');
+      const professorDeck = document.getElementById('professorDeck');
+      const rightDashboardCol = document.getElementById('rightDashboardCol');
+      const btnOpenShareModal = document.getElementById('btnOpenShareModal');
+      const btnPromptReset = document.getElementById('btnPromptReset');
+
+      if (isProfessorMode) {
+        if (badgeCurrentRole) {
+          badgeCurrentRole.textContent = 'Modo Profesor / Aula';
+          badgeCurrentRole.className = 'text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/40';
+        }
+        if (labelToggleRole) labelToggleRole.textContent = 'Ver como Alumno';
+        if (professorDeck) professorDeck.classList.remove('hidden');
+        if (rightDashboardCol) rightDashboardCol.classList.remove('hidden');
+        if (btnOpenShareModal) btnOpenShareModal.classList.remove('hidden');
+        if (btnPromptReset) btnPromptReset.classList.remove('hidden');
+      } else {
+        if (badgeCurrentRole) {
+          badgeCurrentRole.textContent = 'Modo Alumno';
+          badgeCurrentRole.className = 'text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-950 text-indigo-300 border border-indigo-500/40';
+        }
+        if (labelToggleRole) labelToggleRole.textContent = 'Acceso Profesor 🔒';
+        if (professorDeck) professorDeck.classList.add('hidden');
+        // In Student mode, hide the entire right dashboard so student phones cannot view or inspect the answer
+        if (rightDashboardCol) rightDashboardCol.classList.add('hidden');
+        if (btnOpenShareModal) btnOpenShareModal.classList.add('hidden');
+        if (btnPromptReset) btnPromptReset.classList.add('hidden');
+      }
+
+      // 5. Student voting state
+      const myCurrentVote = allVotesList.find(v => v.scenarioId === scenario.id && v.voterId === myVoterId);
+      const btnVoteUp = document.getElementById('btnVoteUp');
+      const btnVoteDown = document.getElementById('btnVoteDown');
+      const myVoteNotification = document.getElementById('myVoteNotification');
+      const studentClassroomBanner = document.getElementById('studentClassroomBanner');
+
+      if (myCurrentVote) {
+        if (btnVoteUp) btnVoteUp.disabled = true;
+        if (btnVoteDown) btnVoteDown.disabled = true;
+
+        if (myVoteNotification) {
+          myVoteNotification.classList.remove('hidden');
+          const isCorrect = (myCurrentVote.vote === scenario.expectedVerdict);
+
+          if (isRevealedByProfessor) {
+            myVoteNotification.className = `mt-5 p-4 rounded-2xl text-center text-xs sm:text-sm font-semibold border ${
+              isCorrect ? 'bg-emerald-950/60 border-emerald-500/50 text-emerald-300' : 'bg-rose-950/60 border-rose-500/50 text-rose-300'
+            }`;
+            myVoteNotification.innerHTML = `Voto emitido: <strong>${myCurrentVote.vote === 'up' ? '📈 SUBE' : '📉 BAJA'}</strong> ${
+              isCorrect ? '— ¡Acertaste! (+100 pts para el podio)' : '— No era la señal esperada.'
+            }`;
+          } else {
+            myVoteNotification.className = 'mt-5 p-4 rounded-2xl text-center text-xs sm:text-sm font-semibold border bg-slate-950 border-indigo-500/40 text-indigo-300';
+            myVoteNotification.innerHTML = `✅ Voto sellado: <strong>${myCurrentVote.vote === 'up' ? '📈 SUBE el valor' : '📉 BAJA el valor'}</strong>. Tu respuesta cuenta para la clasificación general.`;
+          }
+        }
+
+        if (studentClassroomBanner) {
+          if (!isProfessorMode) {
+            studentClassroomBanner.classList.remove('hidden');
+          } else {
+            studentClassroomBanner.classList.add('hidden');
+          }
+        }
+      } else {
+        if (btnVoteUp) btnVoteUp.disabled = false;
+        if (btnVoteDown) btnVoteDown.disabled = false;
+        if (myVoteNotification) myVoteNotification.classList.add('hidden');
+        if (studentClassroomBanner) studentClassroomBanner.classList.add('hidden');
+      }
+
+      // 6. Polling statistics for current scenario
+      const scenarioVotes = allVotesList.filter(v => v.scenarioId === scenario.id);
+      const totalVotes = scenarioVotes.length;
+      const countUp = scenarioVotes.filter(v => v.vote === 'up').length;
+      const countDown = scenarioVotes.filter(v => v.vote === 'down').length;
+
+      const pctUp = totalVotes > 0 ? Math.round((countUp / totalVotes) * 100) : 0;
+      const pctDown = totalVotes > 0 ? Math.round((countDown / totalVotes) * 100) : 0;
+
+      const scenarioVoteCountBadge = document.getElementById('scenarioVoteCountBadge');
+      if (scenarioVoteCountBadge) {
+        scenarioVoteCountBadge.textContent = `${totalVotes} voto${totalVotes === 1 ? '' : 's'}`;
+      }
+
+      const labelPercentUp = document.getElementById('labelPercentUp');
+      if (labelPercentUp) labelPercentUp.textContent = `${pctUp}%`;
+
+      const labelPercentDown = document.getElementById('labelPercentDown');
+      if (labelPercentDown) labelPercentDown.textContent = `${pctDown}%`;
+
+      const barVoteUp = document.getElementById('barVoteUp');
+      if (barVoteUp) {
+        barVoteUp.style.width = `${pctUp}%`;
+        barVoteUp.textContent = pctUp > 12 ? `${pctUp}%` : '';
+      }
+
+      const barVoteDown = document.getElementById('barVoteDown');
+      if (barVoteDown) {
+        barVoteDown.style.width = `${pctDown}%`;
+        barVoteDown.textContent = pctDown > 12 ? `${pctDown}%` : '';
+      }
+
+      const countVoteUp = document.getElementById('countVoteUp');
+      if (countVoteUp) countVoteUp.textContent = countUp;
+
+      const countVoteDown = document.getElementById('countVoteDown');
+      if (countVoteDown) countVoteDown.textContent = countDown;
+
+      // Classroom consensus message
+      const consensusText = document.getElementById('consensusText');
+      if (consensusText) {
+        if (totalVotes === 0) {
+          consensusText.textContent = 'Esperando las primeras respuestas de los alumnos...';
+        } else if (pctUp > 60) {
+          consensusText.textContent = `Mayoría clara (${pctUp}%): La clase anticipa un incremento en el valor de la empresa.`;
+        } else if (pctDown > 60) {
+          consensusText.textContent = `Mayoría clara (${pctDown}%): La clase anticipa una caída o castigo en el valor.`;
+        } else {
+          consensusText.textContent = `División de opiniones en el aula (${pctUp}% Sube vs. ${pctDown}% Baja). Buen momento para debatir argumentos.`;
+        }
+      }
+
+      // Unique active students
+      const uniqueVoters = new Set(allVotesList.map(v => v.voterId));
+      const liveActiveUsersCountBadge = document.getElementById('liveActiveUsersCountBadge');
+      if (liveActiveUsersCountBadge) {
+        liveActiveUsersCountBadge.textContent = `${uniqueVoters.size} alumnos activos`;
+      }
+
+      // 7. Academic Solution & Theory Cards
+      const solutionStatusPill = document.getElementById('solutionStatusPill');
+      const explanationLockedNotice = document.getElementById('explanationLockedNotice');
+      const explanationContent = document.getElementById('explanationContent');
+      const correctVerdictText = document.getElementById('correctVerdictText');
+      const theoreticalMechanismText = document.getElementById('theoreticalMechanismText');
+      const keyFinancialPrincipleText = document.getElementById('keyFinancialPrincipleText');
+      const verdictTagUp = document.getElementById('verdictTagUp');
+      const verdictTagDown = document.getElementById('verdictTagDown');
+      const btnRevealText = document.getElementById('btnRevealText');
+      const btnRevealIcon = document.getElementById('btnRevealIcon');
+      const labelCardToggleReveal = document.getElementById('labelCardToggleReveal');
+
+      if (isRevealedByProfessor) {
+        if (solutionStatusPill) {
+          solutionStatusPill.textContent = 'Solución Desvelada';
+          solutionStatusPill.className = 'text-xs px-2.5 py-1 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/40 font-bold';
+        }
+        if (explanationLockedNotice) explanationLockedNotice.classList.add('hidden');
+        if (explanationContent) explanationContent.classList.remove('hidden');
+
+        if (correctVerdictText) {
+          correctVerdictText.textContent = scenario.expectedVerdict === 'up' ? 'SUBE EL VALOR' : 'BAJA EL VALOR';
+          correctVerdictText.className = scenario.expectedVerdict === 'up' ? 'font-black text-emerald-400 text-lg tracking-wide' : 'font-black text-rose-400 text-lg tracking-wide';
+        }
+        if (theoreticalMechanismText) theoreticalMechanismText.textContent = scenario.theoreticalMechanism;
+        if (keyFinancialPrincipleText) keyFinancialPrincipleText.textContent = scenario.financialPrinciple;
+
+        if (verdictTagUp) verdictTagUp.classList.toggle('hidden', scenario.expectedVerdict !== 'up');
+        if (verdictTagDown) verdictTagDown.classList.toggle('hidden', scenario.expectedVerdict !== 'down');
+
+        if (btnRevealText) btnRevealText.textContent = 'Ocultar Solución';
+        if (btnRevealIcon) btnRevealIcon.textContent = '🙈';
+        if (labelCardToggleReveal) labelCardToggleReveal.textContent = 'Ocultar';
+      } else {
+        if (solutionStatusPill) {
+          solutionStatusPill.textContent = 'Solución Oculta';
+          solutionStatusPill.className = 'text-xs px-2.5 py-1 rounded-full bg-slate-800 text-slate-400 border border-slate-700 font-semibold';
+        }
+        if (explanationLockedNotice) explanationLockedNotice.classList.remove('hidden');
+        if (explanationContent) explanationContent.classList.add('hidden');
+
+        if (verdictTagUp) verdictTagUp.classList.add('hidden');
+        if (verdictTagDown) verdictTagDown.classList.add('hidden');
+
+        if (btnRevealText) btnRevealText.textContent = 'Revelar Solución';
+        if (btnRevealIcon) btnRevealIcon.textContent = '👁️';
+        if (labelCardToggleReveal) labelCardToggleReveal.textContent = 'Revelar';
+      }
+    }
+    // -------------------------------------------------------------
+    // LEADERBOARD & PODIUM CALCULATION
+    // -------------------------------------------------------------
+    function calculateLeaderboard() {
+      const scoresMap = {};
+
+      // Calculate score for each voter
+      allVotesList.forEach(v => {
+        const scenario = SCENARIOS.find(s => s.id === v.scenarioId);
+        if (!scenario) return;
+
+        if (!scoresMap[v.voterId]) {
+          scoresMap[v.voterId] = {
+            voterId: v.voterId,
+            name: v.voterName || 'Alumno Anónimo',
+            score: 0,
+            correctCount: 0,
+            totalVotes: 0
+          };
+        }
+
+        scoresMap[v.voterId].totalVotes += 1;
+        if (v.vote === scenario.expectedVerdict) {
+          scoresMap[v.voterId].score += 100;
+          scoresMap[v.voterId].correctCount += 1;
+        }
+      });
+
+      return Object.values(scoresMap).sort((a, b) => b.score - a.score || b.correctCount - a.correctCount);
+    }
+
+    window.openLeaderboardModal = function() {
+      const ranked = calculateLeaderboard();
+      const podiumTop3Container = document.getElementById('podiumTop3Container');
+      const leaderboardList = document.getElementById('leaderboardList');
+
+      // Top 3 Podium
+      if (podiumTop3Container) {
+        if (ranked.length === 0) {
+          podiumTop3Container.innerHTML = `
+            <div class="text-center py-6 text-slate-400 text-xs w-full">
+              No hay votos registrados todavía en la sesión del aula.
+            </div>
+          `;
+        } else {
+          const gold = ranked[0] || null;
+          const silver = ranked[1] || null;
+          const bronze = ranked[2] || null;
+
+          podiumTop3Container.innerHTML = `
+            <!-- 2nd Place: Silver -->
+            <div class="flex flex-col items-center flex-1 max-w-[120px]">
+              <div class="text-xs font-bold text-slate-300 truncate w-full text-center mb-1">${silver ? silver.name : '—'}</div>
+              <div class="text-[11px] font-mono text-slate-400 mb-1">${silver ? silver.score + ' pts' : '0 pts'}</div>
+              <div class="w-full bg-gradient-to-t from-slate-800 to-slate-700 h-24 rounded-t-2xl border-t-2 border-slate-300 flex flex-col items-center justify-center p-2 shadow-lg">
+                <span class="text-2xl mb-1">🥈</span>
+                <span class="text-xs font-black text-slate-200">2º Puesto</span>
+              </div>
+            </div>
+
+            <!-- 1st Place: Gold -->
+            <div class="flex flex-col items-center flex-1 max-w-[140px]">
+              <div class="text-xs font-black text-amber-300 truncate w-full text-center mb-1 pulse-attention">${gold ? gold.name : '—'}</div>
+              <div class="text-xs font-mono font-bold text-amber-400 mb-1">${gold ? gold.score + ' pts' : '0 pts'}</div>
+              <div class="w-full bg-gradient-to-t from-amber-600/80 to-amber-500/90 h-32 rounded-t-2xl border-t-4 border-amber-300 flex flex-col items-center justify-center p-2 shadow-2xl shadow-amber-500/20">
+                <span class="text-3xl mb-1">🥇</span>
+                <span class="text-sm font-black text-slate-950">1º Puesto</span>
+              </div>
+            </div>
+
+            <!-- 3rd Place: Bronze -->
+            <div class="flex flex-col items-center flex-1 max-w-[120px]">
+              <div class="text-xs font-bold text-amber-700 truncate w-full text-center mb-1">${bronze ? bronze.name : '—'}</div>
+              <div class="text-[11px] font-mono text-slate-400 mb-1">${bronze ? bronze.score + ' pts' : '0 pts'}</div>
+              <div class="w-full bg-gradient-to-t from-amber-950 to-amber-900/80 h-16 rounded-t-2xl border-t-2 border-amber-700 flex flex-col items-center justify-center p-2 shadow-lg">
+                <span class="text-xl mb-1">🥉</span>
+                <span class="text-xs font-bold text-amber-200">3º Puesto</span>
+              </div>
+            </div>
+          `;
+        }
+      }
+
+      // Remaining Table
+      if (leaderboardList) {
+        if (ranked.length === 0) {
+          leaderboardList.innerHTML = `<p class="text-xs text-slate-500 text-center py-2">Sin participantes.</p>`;
+        } else {
+          leaderboardList.innerHTML = ranked.map((st, i) => `
+            <div class="flex items-center justify-between p-2.5 rounded-xl ${st.voterId === myVoterId ? 'bg-indigo-950/70 border border-indigo-500/50' : 'bg-slate-950/60 border border-slate-800'} text-xs">
+              <div class="flex items-center gap-2.5 truncate">
+                <span class="font-mono font-bold ${i < 3 ? 'text-amber-400' : 'text-slate-400'} w-5 text-right">#${i + 1}</span>
+                <span class="font-semibold text-white truncate">${st.name} ${st.voterId === myVoterId ? '<span class="text-[10px] text-indigo-400">(Tú)</span>' : ''}</span>
+              </div>
+              <div class="flex items-center gap-3 shrink-0">
+                <span class="text-slate-400 text-[11px]">${st.correctCount}/${st.totalVotes} aciertos</span>
+                <span class="font-mono font-bold text-emerald-400">${st.score} pts</span>
+              </div>
+            </div>
+          `).join('');
+        }
+      }
+
+      document.getElementById('modalLeaderboard').classList.remove('hidden');
+    };
+
+    window.closeLeaderboardModal = function() {
+      document.getElementById('modalLeaderboard').classList.add('hidden');
+    };
+
+    // -------------------------------------------------------------
+    // STUDENT NAME MODAL
+    // -------------------------------------------------------------
+    window.openStudentNameModal = function() {
+      const input = document.getElementById('inputStudentName');
+      if (input) input.value = myStudentName;
+      document.getElementById('modalStudentName').classList.remove('hidden');
+    };
+
+    window.closeStudentNameModal = function() {
+      document.getElementById('modalStudentName').classList.add('hidden');
+    };
+
+    window.saveStudentName = function(e) {
+      e.preventDefault();
+      const input = document.getElementById('inputStudentName');
+      const val = input.value.trim();
+      if (!val) return;
+
+      myStudentName = val;
+      localStorage.setItem('signal_student_name', myStudentName);
+      closeStudentNameModal();
+      showToast(`¡Hola, ${myStudentName}!`, "👋");
+      updateUI();
+
+      // If a vote was queued before entering the name, cast it now
+      if (pendingVoteChoice) {
+        const choice = pendingVoteChoice;
+        pendingVoteChoice = null;
+        castVote(choice);
+      }
+    };
+    // -------------------------------------------------------------
+    // SHARE & QR CODE MODAL
+    // -------------------------------------------------------------
+    function getStudentShareUrl() {
+      let baseUrl = window.location.href.split('#')[0].split('?')[0];
+
+      // If running inside local file or sandbox, make sure protocol is web
+      if (baseUrl.startsWith('file:') || baseUrl.includes('srcdoc')) {
+        // Suggested placeholder or actual URL
+        baseUrl = 'https://evarmprof.github.io/senales-finanzas/';
+      }
+
+      return `${baseUrl}?mode=student`;
+    }
+
+    window.openShareModal = function() {
+      const shareUrl = getStudentShareUrl();
+      const shareUrlInput = document.getElementById('shareUrlInput');
+      if (shareUrlInput) shareUrlInput.value = shareUrl;
+
+      const qrContainer = document.getElementById('qrContainer');
+      if (qrContainer) {
+        qrContainer.innerHTML = '';
+        if (window.QRCode) {
+          new QRCode(qrContainer, {
+            text: shareUrl,
+            width: 220,
+            height: 220,
+            colorDark: "#020617",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.M
+          });
+        } else {
+          // Fallback image QR
+          qrContainer.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(shareUrl)}" alt="Código QR" class="w-full h-full object-contain">`;
+        }
+      }
+
+      document.getElementById('modalShareQR').classList.remove('hidden');
+    };
+
+    window.closeShareModal = function() {
+      document.getElementById('modalShareQR').classList.add('hidden');
+    };
+
+    window.copyShareUrl = function() {
+      const input = document.getElementById('shareUrlInput');
+      if (input) {
+        input.select();
+        input.setSelectionRange(0, 99999);
+        try {
+          document.execCommand('copy');
+          showToast("Enlace de alumnos copiado al portapapeles", "📋");
+        } catch (e) {
+          showToast("Selecciona y copia el enlace manualmente", "ℹ️");
+        }
+      }
+    };
+
+    // -------------------------------------------------------------
+    // RESET MODAL
+    // -------------------------------------------------------------
+    window.openResetModal = function() {
+      document.getElementById('modalResetConfirm').classList.remove('hidden');
+    };
+
+    window.closeResetModal = function() {
+      document.getElementById('modalResetConfirm').classList.add('hidden');
+    };
+
+    // -------------------------------------------------------------
+    // TEACHER PIN SECURITY MODAL
+    // -------------------------------------------------------------
+    window.openTeacherPinModal = function() {
+      const modal = document.getElementById('modalTeacherPin');
+      const input = document.getElementById('inputTeacherPin');
+      const err = document.getElementById('pinErrorMsg');
+      if (modal) modal.classList.remove('hidden');
+      if (input) { input.value = ''; input.focus(); }
+      if (err) err.classList.add('hidden');
+    };
+
+    window.closeTeacherPinModal = function() {
+      const modal = document.getElementById('modalTeacherPin');
+      if (modal) modal.classList.add('hidden');
+    };
+
+    window.submitTeacherPin = function(e) {
+      e.preventDefault();
+      const input = document.getElementById('inputTeacherPin');
+      const err = document.getElementById('pinErrorMsg');
+      const val = input ? input.value.trim() : '';
+
+      if (val === PROFESSOR_SECRET_PIN) {
+        isProfessorMode = true;
+        closeTeacherPinModal();
+        updateUI();
+        showToast("Identificado como Profesor con éxito", "👨‍🏫");
+      } else {
+        if (err) err.classList.remove('hidden');
+        if (input) { input.select(); }
+      }
+    };
+
+    window.confirmResetAll = async function() {
+      closeResetModal();
+      playTone('reset');
+      allVotesList = [];
+      isRevealedByProfessor = false;
+      currentScenarioIndex = 0;
+      updateUI();
+      showToast("Votos borrados y actividad reiniciada", "🔄");
+
+      if (syncChannel) {
+        try {
+          syncChannel.postMessage({ type: 'RESET_ALL' });
+        } catch (e) {}
+      }
+
+      if (db && auth?.currentUser) {
+        try {
+          const votesColRef = collection(db, 'artifacts', appId, 'public', 'data', 'scenario_votes');
+          const snapshot = await getDocs(votesColRef);
+          const delPromises = [];
+          snapshot.forEach(d => delPromises.push(deleteDoc(d.ref)));
+          await Promise.all(delPromises);
+
+          const stateDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'session_meta', 'state');
+          await setDoc(stateDocRef, { scenarioIndex: 0, isRevealed: false, resetAt: Date.now() });
+        } catch (e) {
+          console.error("Error clearing Firebase votes:", e);
+        }
+      }
+    };
+
+    // -------------------------------------------------------------
+    // TOAST NOTIFICATIONS
+    // -------------------------------------------------------------
+    let toastTimer = null;
+    function showToast(msg, icon = "✨") {
+      const toast = document.getElementById('toastNotification');
+      const toastMessage = document.getElementById('toastMessage');
+      const toastIcon = document.getElementById('toastIcon');
+      if (!toast || !toastMessage) return;
+
+      toastMessage.textContent = msg;
+      if (toastIcon) toastIcon.textContent = icon;
+
+      toast.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+      }, 3000);
+    }
+    // -------------------------------------------------------------
+    // INITIALIZATION & EVENT LISTENERS
+    // -------------------------------------------------------------
+    window.addEventListener('DOMContentLoaded', () => {
+      // 1. Detect URL parameters (?mode=student or ?mode=prof)
+      const urlParams = new URLSearchParams(window.location.search);
+      const modeParam = urlParams.get('mode');
+
+      if (modeParam === 'student') {
+        isProfessorMode = false;
+        // Prompt for student name on initial load if not set
+        if (!myStudentName) {
+          setTimeout(openStudentNameModal, 400);
+        }
+      } else {
+        isProfessorMode = true; // Default projector view
+      }
+
+      // 2. Attach button event listeners safely
+      const btnStudentIdentity = document.getElementById('btnStudentIdentity');
+      if (btnStudentIdentity) {
+        btnStudentIdentity.addEventListener('click', openStudentNameModal);
+      }
+
+      const btnOpenLeaderboard = document.getElementById('btnOpenLeaderboard');
+      if (btnOpenLeaderboard) {
+        btnOpenLeaderboard.addEventListener('click', openLeaderboardModal);
+      }
+
+      const btnOpenShareModal = document.getElementById('btnOpenShareModal');
+      if (btnOpenShareModal) {
+        btnOpenShareModal.addEventListener('click', openShareModal);
+      }
+
+      const btnToggleRole = document.getElementById('btnToggleRole');
+      if (btnToggleRole) {
+        btnToggleRole.addEventListener('click', () => {
+          if (isProfessorMode) {
+            // Professor can freely preview student mode
+            isProfessorMode = false;
+            updateUI();
+            showToast("Cambiado a Modo Alumno", "📱");
+          } else {
+            // Student MUST enter the Teacher PIN to become Professor
+            openTeacherPinModal();
+          }
+        });
+      }
+
+      const btnPromptReset = document.getElementById('btnPromptReset');
+      if (btnPromptReset) {
+        btnPromptReset.addEventListener('click', openResetModal);
+      }
+
+      // Initialize Firebase and UI
+      setupFirebase();
+      updateUI();
+    });
+  </script>
+</body>
+</html>
