@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador Intuitivo de Valor Actual (VA)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 7px;
+            background: #334155;
+            border-radius: 9999px;
+            outline: none;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 22px;
+            height: 22px;
+            background: #6366f1;
+            border: 3px solid #1e1b4b;
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
+            transition: transform 0.15s ease, background-color 0.15s;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+            background: #818cf8;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 22px;
+            height: 22px;
+            background: #6366f1;
+            border: 3px solid #1e1b4b;
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
+            cursor: pointer;
+        }
+        .custom-glass {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen p-3 md:p-8 flex flex-col justify-between selection:bg-indigo-500 selection:text-white">
+
+    <div class="max-w-6xl w-full mx-auto space-y-6">
+        
+        <!-- Header -->
+        <header class="text-center space-y-2">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 text-xs font-semibold tracking-wider uppercase">
+                <span class="w-2 h-2 rounded-full bg-indigo-400 animate-ping"></span>
+                Matemática Financiera & Valor Temporal del Dinero
+            </div>
+            <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-white via-indigo-200 to-indigo-400 bg-clip-text text-transparent">
+                Simulador de Descuento y Valor Actual (VA)
+            </h1>
+            <p class="text-slate-400 text-sm md:text-base max-w-2xl mx-auto">
+                El <strong class="text-slate-200 font-semibold">Valor Actual</strong> siempre se mide en el <strong class="text-indigo-400 font-semibold">Momento 0 (hoy)</strong>. 
+                Observa cómo su cuantía se reduce al aumentar el <strong class="text-rose-400">tipo de interés</strong> o al <strong class="text-amber-400">alejar el cobro en el tiempo</strong>.
+            </p>
+        </header>
+
+        <!-- Línea temporal didáctica (Momento 0 vs Momento T) -->
+        <section class="custom-glass rounded-2xl p-5 md:p-6 shadow-xl border border-slate-800">
+            <div class="flex flex-col md:flex-row items-center justify-between gap-6 relative">
+                
+                <!-- Momento 0: Valor Actual -->
+                <div class="w-full md:w-5/12 bg-slate-900/90 border-2 border-indigo-500/50 rounded-xl p-5 text-center relative overflow-hidden shadow-lg shadow-indigo-950/30 group hover:border-indigo-400 transition-colors">
+                    <div class="absolute -top-10 -left-10 w-24 h-24 bg-indigo-500/10 rounded-full blur-xl pointer-events-none"></div>
+                    <span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-indigo-500 text-white mb-2">
+                        Momento 0 (HOY)
+                    </span>
+                    <h3 class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Valor Actual (VA)</h3>
+                    <div class="text-3xl md:text-4xl font-extrabold text-indigo-300 font-mono my-2" id="displayPV">
+                        0.00 €
+                    </div>
+                    <p class="text-xs text-slate-400">
+                        El valor equivalente si recibiéramos ese dinero <span class="text-slate-200 font-medium">hoy mismo</span>.
+                    </p>
+                </div>
+
+                <!-- Flecha de descuento hacia atrás con la cantidad total descontada -->
+                <div class="flex-1 flex flex-col items-center justify-center text-center px-2 py-2">
+                    <!-- Badge con la cantidad total descontada (VF − VA) -->
+                    <div class="bg-rose-950/50 border border-rose-500/30 rounded-xl px-3 py-1.5 mb-2 shadow-sm text-center">
+                        <span class="block text-[10px] text-rose-300 uppercase tracking-wider font-semibold">Descuento Total (VF − VA)</span>
+                        <span id="discountTotalDisplay" class="font-mono text-base md:text-lg font-extrabold text-rose-400">
+                            0.00 €
+                        </span>
+                    </div>
+
+                    <!-- Flecha SVG orientada hacia la izquierda (desde el futuro hacia hoy) -->
+                    <div class="w-full flex items-center justify-center my-1 relative">
+                        <div class="h-0.5 w-full bg-gradient-to-l from-emerald-500 via-rose-500 to-indigo-500 relative flex items-center justify-start">
+                            <span class="absolute -left-1 text-indigo-400 text-lg">◀</span>
+                        </div>
+                    </div>
+                    <span class="text-[11px] text-slate-400 tracking-wide mt-1">
+                        Efecto descuento: <span id="timelineYearsText" class="text-amber-300 font-semibold">5</span> años a un <span id="timelineRateText" class="text-rose-400 font-semibold">5%</span>
+                    </span>
+                </div>
+
+                <!-- Momento T: Valor Futuro -->
+                <div class="w-full md:w-5/12 bg-slate-900/90 border border-slate-700/70 rounded-xl p-5 text-center relative overflow-hidden shadow-lg group hover:border-emerald-400/60 transition-colors">
+                    <div class="absolute -top-10 -right-10 w-24 h-24 bg-emerald-500/10 rounded-full blur-xl pointer-events-none"></div>
+                    <span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 mb-2" id="futureYearBadge">
+                        Momento T = 5 años
+                    </span>
+                    <h3 class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Flujo Futuro Nominal (VF)</h3>
+                    <div class="text-3xl md:text-4xl font-extrabold text-emerald-400 font-mono my-2" id="displayFV">
+                        1.000 €
+                    </div>
+                    <p class="text-xs text-slate-400">
+                        Importe pactado que se cobrará en el futuro.
+                    </p>
+                </div>
+
+            </div>
+
+            <!-- Desglose de la fórmula matemática compuesta -->
+            <div class="mt-5 pt-4 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-3 text-xs md:text-sm">
+                <div class="flex items-center gap-2 text-slate-300">
+                    <span class="font-semibold text-slate-400">Fórmula de capitalización compuesta:</span>
+                    <code class="bg-slate-950 px-2.5 py-1 rounded-md text-indigo-300 font-mono border border-slate-800">
+                        VA = VF / (1 + r)<sup>T</sup>
+                    </code>
+                </div>
+                <div id="mathBreakdown" class="font-mono text-slate-300 bg-slate-950/80 px-3 py-1 rounded-md border border-slate-800">
+                    <!-- Dinámico vía JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Controles y Gráfico -->
+        <div class="grid lg:grid-cols-12 gap-6">
+            
+            <!-- Panel de Parámetros (4 columnas) -->
+            <div class="lg:col-span-4 space-y-5">
+                <div class="custom-glass rounded-2xl p-5 md:p-6 shadow-xl border border-slate-800 space-y-5">
+                    <h2 class="text-base font-bold text-white flex items-center gap-2">
+                        <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                        </svg>
+                        Parámetros del Flujo
+                    </h2>
+
+                    <!-- Flujo Futuro Nominal (VF) -->
+                    <div class="space-y-1.5">
+                        <label for="futureValue" class="text-xs font-semibold text-slate-300 uppercase tracking-wider flex justify-between">
+                            <span>1. Flujo de Caja Futuro (VF)</span>
+                            <span class="text-emerald-400 font-mono font-bold" id="labelFutureValue">1.000 €</span>
+                        </label>
+                        <div class="relative">
+                            <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold">€</span>
+                            <input type="number" id="futureValue" value="1000" min="100" max="100000" step="100" 
+                                class="w-full bg-slate-900 text-white pl-8 pr-3 py-2 rounded-xl border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition font-mono text-sm">
+                        </div>
+                    </div>
+
+                    <!-- Plazo Temporal (T) -->
+                    <div class="space-y-1.5">
+                        <div class="flex justify-between items-center text-xs">
+                            <label for="timeHorizon" class="font-semibold text-slate-300 uppercase tracking-wider">2. Momento del Cobro (T)</label>
+                            <span id="timeDisplay" class="font-mono text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">5 años</span>
+                        </div>
+                        <input type="range" id="timeHorizon" min="1" max="25" value="5" step="1">
+                        <div class="flex justify-between text-[11px] text-slate-500 font-mono">
+                            <span>1 año</span>
+                            <span>12 años</span>
+                            <span>25 años</span>
+                        </div>
+                    </div>
+
+                    <!-- Tasa de Interés / Descuento (r) -->
+                    <div class="space-y-1.5">
+                        <div class="flex justify-between items-center text-xs">
+                            <label for="interestRate" class="font-semibold text-slate-300 uppercase tracking-wider">3. Tipo de Interés / Descuento (r)</label>
+                            <span id="rateValueDisplay" class="font-mono text-rose-400 font-bold bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20">5.0%</span>
+                        </div>
+                        <input type="range" id="interestRate" min="0.00" max="0.25" value="0.05" step="0.005">
+                        <div class="flex justify-between text-[11px] text-slate-500 font-mono">
+                            <span>0%</span>
+                            <span>12.5%</span>
+                            <span>25%</span>
+                        </div>
+                    </div>
+
+                    <!-- Tasa de Comparación Secundaria -->
+                    <div class="pt-3 border-t border-slate-800 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <label for="compareRate" class="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block"></span>
+                                Tasa de Comparativa (r₂)
+                            </label>
+                            <span id="compareRateDisplay" class="font-mono text-emerald-400 font-bold text-xs bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">2.5%</span>
+                        </div>
+                        <input type="range" id="compareRate" min="0.00" max="0.25" value="0.025" step="0.005">
+                    </div>
+
+                    <!-- Tarjeta de síntesis didáctica -->
+                    <div class="bg-indigo-950/30 border border-indigo-500/20 rounded-xl p-3.5 space-y-2 text-xs text-slate-300">
+                        <div class="flex items-center gap-1.5 font-bold text-indigo-300">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span>Regla Clave</span>
+                        </div>
+                        <p class="leading-relaxed">
+                            Cuanto más alto sea el tipo de interés o más tarde se reciba el dinero, menor es el valor que ese flujo representa en el <strong class="text-white">momento 0</strong>.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Columna del Gráfico (8 columnas) -->
+            <div class="lg:col-span-8 flex flex-col space-y-4">
+                <div class="custom-glass rounded-2xl p-5 md:p-6 shadow-xl border border-slate-800 flex-1 flex flex-col">
+                    
+                    <!-- Pestañas de Modo de Vista Gráfica -->
+                    <div class="flex flex-wrap items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-800">
+                        <div>
+                            <h2 class="text-base font-bold text-white" id="chartTitle">
+                                Sensibilidad al Tiempo de Cobro (Año T)
+                            </h2>
+                            <p class="text-xs text-slate-400" id="chartSubtitle">
+                                Muestra el VA (en momento 0) si el cobro se produjera en distintos años futuros.
+                            </p>
+                        </div>
+
+                        <!-- Selector de Modo de Gráfico -->
+                        <div class="flex rounded-lg bg-slate-900 p-1 border border-slate-800 text-xs font-semibold">
+                            <button id="btnViewTime" class="px-3 py-1.5 rounded-md transition-all bg-indigo-600 text-white shadow">
+                                Variando el Tiempo (T)
+                            </button>
+                            <button id="btnViewRate" class="px-3 py-1.5 rounded-md transition-all text-slate-400 hover:text-white">
+                                Variando el Tipo (r)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Canvas del Gráfico -->
+                    <div class="relative w-full flex-1 min-h-[340px] md:min-h-[380px]">
+                        <canvas id="presentValueChart"></canvas>
+                    </div>
+
+                    <!-- Leyenda interactiva personalizada e informativa -->
+                    <div class="mt-4 pt-3 border-t border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                        <div class="flex items-center gap-2.5 bg-slate-900/60 p-2 rounded-lg border border-slate-800">
+                            <div class="w-3.5 h-3.5 rounded-full bg-rose-500 shadow-sm shadow-rose-500/50"></div>
+                            <div>
+                                <span class="font-medium text-slate-200">Curva Principal:</span>
+                                <span class="text-slate-400" id="legendMainInfo">Tasa r = 5.0%</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2.5 bg-slate-900/60 p-2 rounded-lg border border-slate-800">
+                            <div class="w-3.5 h-3.5 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/50"></div>
+                            <div>
+                                <span class="font-medium text-slate-200">Curva Referencia:</span>
+                                <span class="text-slate-400" id="legendCompareInfo">Tasa r₂ = 2.5%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Resumen Pedagógico de Conclusiones -->
+        <section class="grid md:grid-cols-3 gap-4 text-xs md:text-sm">
+            <div class="custom-glass rounded-xl p-4 border border-slate-800 space-y-1.5">
+                <div class="text-amber-400 font-bold flex items-center gap-1.5">
+                    <span>⏳ Efecto del Tiempo (T)</span>
+                </div>
+                <p class="text-slate-400">
+                    A mayor lejanía del pago, más periodos de interés se pierden (coste de oportunidad). Por tanto, el VA disminuye exponencialmente con cada año adicional.
+                </p>
+            </div>
+
+            <div class="custom-glass rounded-xl p-4 border border-slate-800 space-y-1.5">
+                <div class="text-rose-400 font-bold flex items-center gap-1.5">
+                    <span>📈 Efecto del Tipo de Interés (r)</span>
+                </div>
+                <p class="text-slate-400">
+                    A mayor tasa de descuento, mayor es la penalización por no disponer del dinero hoy. Un tipo de interés elevado pulveriza el valor actual de los flujos lejanos.
+                </p>
+            </div>
+
+            <div class="custom-glass rounded-xl p-4 border border-slate-800 space-y-1.5">
+                <div class="text-indigo-400 font-bold flex items-center gap-1.5">
+                    <span>🎯 ¿Por qué en Momento 0?</span>
+                </div>
+                <p class="text-slate-400">
+                    Permite comparar de forma homogénea opciones de inversión con cobros en fechas dispares, traduciéndolas todas a su equivalente en poder adquisitivo presente.
+                </p>
+            </div>
+        </section>
+
+    </div>
+
+    <script>
+        // Referencias del DOM
+        const futureValueInput = document.getElementById('futureValue');
+        const timeHorizonInput = document.getElementById('timeHorizon');
+        const interestRateInput = document.getElementById('interestRate');
+        const compareRateInput = document.getElementById('compareRate');
+
+        const labelFutureValue = document.getElementById('labelFutureValue');
+        const timeDisplay = document.getElementById('timeDisplay');
+        const rateValueDisplay = document.getElementById('rateValueDisplay');
+        const compareRateDisplay = document.getElementById('compareRateDisplay');
+
+        const displayPV = document.getElementById('displayPV');
+        const displayFV = document.getElementById('displayFV');
+        const futureYearBadge = document.getElementById('futureYearBadge');
+        const discountTotalDisplay = document.getElementById('discountTotalDisplay');
+        const timelineYearsText = document.getElementById('timelineYearsText');
+        const timelineRateText = document.getElementById('timelineRateText');
+        const mathBreakdown = document.getElementById('mathBreakdown');
+
+        const chartTitle = document.getElementById('chartTitle');
+        const chartSubtitle = document.getElementById('chartSubtitle');
+        const legendMainInfo = document.getElementById('legendMainInfo');
+        const legendCompareInfo = document.getElementById('legendCompareInfo');
+        const btnViewTime = document.getElementById('btnViewTime');
+        const btnViewRate = document.getElementById('btnViewRate');
+
+        const canvas = document.getElementById('presentValueChart');
+        const ctx = canvas.getContext('2d');
+
+        // Estado del gráfico y vista
+        let chart = null;
+        let currentMode = 'time'; // 'time' o 'rate'
+
+        // Plazo fijo de referencia para comparaciones en la curva de tipos de interés
+        const FIXED_COMPARE_YEARS = 10;
+
+        // Fórmula de Valor Actual con Capitalización Compuesta: VA = VF / (1 + r)^T
+        const calculatePV = (fv, r, t) => {
+            if (r === 0) return fv;
+            return fv / Math.pow(1 + r, t);
+        };
+
+        // Formateador de moneda en Euros
+        const formatEuro = (val) => {
+            return new Intl.NumberFormat('es-ES', { 
+                style: 'currency', 
+                currency: 'EUR',
+                maximumFractionDigits: 2 
+            }).format(val);
+        };
+
+        const formatPercent = (val) => `${(val * 100).toFixed(1)}%`;
+
+        // Actualiza las tarjetas informativas y la línea temporal superior
+        const updateMetrics = (fv, r, t, r_comp) => {
+            const pv = calculatePV(fv, r, t);
+            const discountAmount = fv - pv;
+
+            // Valores de texto
+            displayPV.textContent = formatEuro(pv);
+            displayFV.textContent = formatEuro(fv);
+            labelFutureValue.textContent = formatEuro(fv);
+            timeDisplay.textContent = `${t} año${t > 1 ? 's' : ''}`;
+            rateValueDisplay.textContent = formatPercent(r);
+            compareRateDisplay.textContent = formatPercent(r_comp);
+
+            futureYearBadge.textContent = `Momento T = ${t} año${t > 1 ? 's' : ''}`;
+            if (discountTotalDisplay) {
+                discountTotalDisplay.textContent = formatEuro(discountAmount);
+            }
+            timelineYearsText.textContent = `${t}`;
+            timelineRateText.textContent = formatPercent(r);
+
+            // Desglose dinámico de la fórmula
+            mathBreakdown.innerHTML = `
+                ${formatEuro(fv)} / (1 + ${r.toFixed(3)})<sup>${t}</sup> = <strong class="text-indigo-400 font-bold">${formatEuro(pv)}</strong>
+            `;
+
+            // Actualizar textos de leyenda
+            if (currentMode === 'time') {
+                legendMainInfo.textContent = `Tasa principal: ${formatPercent(r)} (Punto en año ${t})`;
+                legendCompareInfo.textContent = `Tasa comparativa: ${formatPercent(r_comp)}`;
+            } else {
+                legendMainInfo.textContent = `Plazo evaluado: ${t} año${t > 1 ? 's' : ''} (Punto en ${formatPercent(r)})`;
+                legendCompareInfo.textContent = `Plazo comparativo: ${FIXED_COMPARE_YEARS} años`;
+            }
+        };
+
+        // Generador de datos para el modo: Sensibilidad al Tiempo (T de 0 a 25 años)
+        const generateTimeData = (fv, r, t, r_comp) => {
+            const years = Array.from({ length: 26 }, (_, i) => i); // 0 a 25 años
+            const dataMain = years.map(y => calculatePV(fv, r, y));
+            const dataComp = years.map(y => calculatePV(fv, r_comp, y));
+
+            // Dataset con punto resaltado en el año seleccionado
+            const pointRadii = years.map(y => y === t ? 8 : 2);
+            const pointHoverRadii = years.map(y => y === t ? 10 : 5);
+
+            return {
+                labels: years.map(y => `Año ${y}`),
+                datasets: [
+                    {
+                        label: `Tasa r: ${(r * 100).toFixed(1)}% (Seleccionada)`,
+                        data: dataMain,
+                        borderColor: 'rgb(244, 63, 94)', // Rose 500
+                        backgroundColor: 'rgba(244, 63, 94, 0.1)',
+                        borderWidth: 2.5,
+                        pointRadius: pointRadii,
+                        pointHoverRadius: pointHoverRadii,
+                        pointBackgroundColor: years.map(y => y === t ? '#fbbf24' : 'rgb(244, 63, 94)'),
+                        pointBorderColor: '#0f172a',
+                        pointBorderWidth: 2,
+                        tension: 0.35,
+                        fill: true
+                    },
+                    {
+                        label: `Tasa r₂: ${(r_comp * 100).toFixed(1)}% (Comparación)`,
+                        data: dataComp,
+                        borderColor: 'rgb(52, 211, 153)', // Emerald 400
+                        backgroundColor: 'rgba(52, 211, 153, 0.04)',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        pointRadius: 1,
+                        tension: 0.35,
+                        fill: false
+                    }
+                ]
+            };
+        };
+
+        // Generador de datos para el modo: Sensibilidad al Tipo de Interés (r de 0% a 25%)
+        const generateRateData = (fv, r, t) => {
+            const rates = [];
+            for (let rateStep = 0; rateStep <= 0.25; rateStep += 0.01) {
+                rates.push(parseFloat(rateStep.toFixed(2)));
+            }
+
+            const dataMain = rates.map(rate => calculatePV(fv, rate, t));
+            const dataComp = rates.map(rate => calculatePV(fv, rate, FIXED_COMPARE_YEARS));
+
+            // Encontrar índice más cercano al r actual para marcarlo
+            const selectedRateIndex = rates.reduce((closestIdx, currRate, idx) => {
+                return Math.abs(currRate - r) < Math.abs(rates[closestIdx] - r) ? idx : closestIdx;
+            }, 0);
+
+            const pointRadii = rates.map((_, idx) => idx === selectedRateIndex ? 8 : 2);
+            const pointHoverRadii = rates.map((_, idx) => idx === selectedRateIndex ? 10 : 5);
+
+            return {
+                labels: rates.map(rate => `${(rate * 100).toFixed(0)}%`),
+                datasets: [
+                    {
+                        label: `Plazo seleccionado: ${t} año${t > 1 ? 's' : ''}`,
+                        data: dataMain,
+                        borderColor: 'rgb(244, 63, 94)',
+                        backgroundColor: 'rgba(244, 63, 94, 0.1)',
+                        borderWidth: 2.5,
+                        pointRadius: pointRadii,
+                        pointHoverRadius: pointHoverRadii,
+                        pointBackgroundColor: rates.map((_, idx) => idx === selectedRateIndex ? '#fbbf24' : 'rgb(244, 63, 94)'),
+                        pointBorderColor: '#0f172a',
+                        pointBorderWidth: 2,
+                        tension: 0.35,
+                        fill: true
+                    },
+                    {
+                        label: `Plazo comparativo: ${FIXED_COMPARE_YEARS} años`,
+                        data: dataComp,
+                        borderColor: 'rgb(52, 211, 153)',
+                        backgroundColor: 'rgba(52, 211, 153, 0.04)',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        pointRadius: 1,
+                        tension: 0.35,
+                        fill: false
+                    }
+                ]
+            };
+        };
+
+        const updateChart = () => {
+            const fv = parseFloat(futureValueInput.value) || 1000;
+            const r = parseFloat(interestRateInput.value);
+            const t = parseInt(timeHorizonInput.value, 10);
+            const r_comp = parseFloat(compareRateInput.value);
+
+            // Actualizar textos e indicadores
+            updateMetrics(fv, r, t, r_comp);
+
+            // Generar los datos según el modo activo
+            const chartData = currentMode === 'time' 
+                ? generateTimeData(fv, r, t, r_comp)
+                : generateRateData(fv, r, t);
+
+            const xAxisTitle = currentMode === 'time' 
+                ? 'Año en el que se cobra el flujo (Momento T futuro)' 
+                : 'Tipo de interés anual de descuento (r)';
+
+            if (chart) {
+                // Actualización limpia: datos, etiquetas y títulos
+                chart.data.labels = chartData.labels;
+                chart.data.datasets = chartData.datasets;
+                chart.options.scales.x.title.text = xAxisTitle;
+                chart.update('none'); // Renderizado rápido y suave para sliders
+            } else {
+                // Crear gráfico por primera vez
+                chart = new Chart(ctx, {
+                    type: 'line',
+                    data: chartData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            intersect: false,
+                            mode: 'index'
+                        },
+                        animation: {
+                            duration: 400
+                        },
+                        scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: xAxisTitle,
+                                    color: '#94a3b8',
+                                    font: { size: 12, weight: '600' }
+                                },
+                                grid: { color: 'rgba(51, 65, 85, 0.4)' },
+                                ticks: { color: '#cbd5e1', font: { size: 11 } }
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: 'Valor Actual hoy en t=0 (€)',
+                                    color: '#94a3b8',
+                                    font: { size: 12, weight: '600' }
+                                },
+                                grid: { color: 'rgba(51, 65, 85, 0.4)' },
+                                ticks: {
+                                    color: '#cbd5e1',
+                                    font: { size: 11 },
+                                    callback: (val) => `${val.toLocaleString('es-ES')} €`
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top',
+                                labels: {
+                                    color: '#e2e8f0',
+                                    font: { size: 12, weight: '600' },
+                                    boxWidth: 16,
+                                    usePointStyle: true
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                                titleColor: '#e2e8f0',
+                                bodyColor: '#cbd5e1',
+                                borderColor: 'rgba(99, 102, 241, 0.3)',
+                                borderWidth: 1,
+                                padding: 10,
+                                callbacks: {
+                                    label: (context) => {
+                                        return ` ${context.dataset.label}: ${formatEuro(context.parsed.y)}`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        };
+
+        // Controladores de eventos de entrada para actualización en tiempo real
+        [futureValueInput, timeHorizonInput, interestRateInput, compareRateInput].forEach(input => {
+            input.addEventListener('input', updateChart);
+        });
+
+        // Alternar entre modo "Sensibilidad al Tiempo" y "Sensibilidad al Tipo de Interés"
+        btnViewTime.addEventListener('click', () => {
+            if (currentMode === 'time') return;
+            currentMode = 'time';
+            btnViewTime.className = 'px-3 py-1.5 rounded-md transition-all bg-indigo-600 text-white shadow';
+            btnViewRate.className = 'px-3 py-1.5 rounded-md transition-all text-slate-400 hover:text-white';
+            chartTitle.textContent = 'Sensibilidad al Tiempo de Cobro (Año T)';
+            chartSubtitle.textContent = 'Muestra el VA (en momento 0) si el cobro se produjera en distintos años futuros.';
+            updateChart();
+        });
+
+        btnViewRate.addEventListener('click', () => {
+            if (currentMode === 'rate') return;
+            currentMode = 'rate';
+            btnViewRate.className = 'px-3 py-1.5 rounded-md transition-all bg-indigo-600 text-white shadow';
+            btnViewTime.className = 'px-3 py-1.5 rounded-md transition-all text-slate-400 hover:text-white';
+            chartTitle.textContent = 'Sensibilidad al Tipo de Interés (r)';
+            chartSubtitle.textContent = 'Muestra cómo disminuye el VA fijando el año de cobro y aumentando la tasa de descuento.';
+            updateChart();
+        });
+
+        // Inicialización al cargar la ventana
+        window.addEventListener('load', () => {
+            updateChart();
+        });
+
+        // Adaptación responsiva ante redimensionamiento
+        window.addEventListener('resize', () => {
+            if (chart) {
+                chart.resize();
+            }
+        });
+    </script>
+</body>
+</html>
