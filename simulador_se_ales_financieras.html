@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador de Señales Financieras - Caso Práctico</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in {
+      animation: fadeIn 0.25s ease-out forwards;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col selection:bg-indigo-500 selection:text-white antialiased">
+
+  <!-- Cabecera limpia y minimalista sin QR ni botones adicionales -->
+  <header class="border-b border-slate-800 bg-slate-900/95 sticky top-0 z-20 px-4 sm:px-8 py-3.5 shadow-md">
+    <div class="max-w-3xl mx-auto flex items-center justify-between gap-4">
+      <div class="flex items-center space-x-3">
+        <div class="h-9 w-9 rounded-xl bg-indigo-600/30 border border-indigo-500/40 flex items-center justify-center text-lg shrink-0">
+          📡
+        </div>
+        <div>
+          <h1 class="font-extrabold text-sm sm:text-base tracking-tight text-white">
+            Teoría de Señales Financieras
+          </h1>
+          <p class="text-xs text-slate-400">Práctica Interactiva</p>
+        </div>
+      </div>
+
+      <!-- Marcador personal de puntos -->
+      <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/90 border border-slate-700/80 text-xs font-semibold text-slate-200">
+        <span class="text-amber-400">⭐</span>
+        <span>Puntos: <strong id="headerScore" class="text-emerald-400 font-mono text-sm">0</strong> / 400</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-3xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col justify-center">
+
+    <!-- Indicador de Progreso del Alumno -->
+    <div id="progressSection" class="mb-5">
+      <div class="flex items-center justify-between text-xs font-semibold text-slate-400 mb-2">
+        <span id="progressStepText">Caso 1 de 4</span>
+        <span id="progressCategoryText" class="text-indigo-400 uppercase tracking-wider font-bold">1. Decisiones de Financiación</span>
+      </div>
+      <div class="w-full bg-slate-900 h-2 rounded-full overflow-hidden border border-slate-800">
+        <div id="progressBarFill" class="bg-gradient-to-r from-indigo-500 to-emerald-400 h-full rounded-full transition-all duration-300" style="width: 25%"></div>
+      </div>
+    </div>
+
+    <!-- Tarjeta del Caso Actual -->
+    <div id="quizCard" class="bg-slate-900/95 rounded-3xl p-6 sm:p-8 border border-slate-800 shadow-xl relative overflow-hidden transition-all">
+      
+      <!-- Categoría de Señal -->
+      <div class="mb-2.5">
+        <span id="badgeCategory" class="px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+          1. Decisiones de Financiación
+        </span>
+      </div>
+
+      <!-- Título del Escenario -->
+      <h2 id="scenarioTitle" class="text-lg sm:text-xl font-black text-white tracking-tight leading-snug mb-3">
+        Emisión de Deuda en lugar de Ampliación de Capital (Nuevas Acciones)
+      </h2>
+
+      <!-- Descripción del Caso -->
+      <div class="p-4 sm:p-5 rounded-2xl bg-slate-950/80 border border-slate-800/80 mb-5 text-slate-300 text-sm sm:text-base leading-relaxed">
+        <p id="scenarioDescription">
+          La corporación industrial "Nortec" necesita captar 200 millones de euros para acometer un proyecto estratégico de expansión. Pudiendo realizar una ampliación de capital emitiendo nuevas acciones, el equipo directivo decide por sorpresa financiarse íntegramente mediante la emisión de bonos y deuda a largo plazo, comprometiéndose contractualmente al pago de intereses periódicos.
+        </p>
+      </div>
+
+      <!-- Pregunta de Decisión para el Alumno -->
+      <div class="mb-3">
+        <p class="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+          <span>⚖️</span> ¿Cuál es la señal y su efecto esperado en el valor de la empresa?
+        </p>
+      </div>
+
+      <!-- Botones de Elección: SUBE vs BAJA -->
+      <div id="choicesArea" class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+        
+        <!-- Opción SUBE -->
+        <button id="btnChoiceUp" onclick="submitAnswer('up')" class="group p-4 sm:p-5 rounded-2xl bg-slate-950 border-2 border-slate-800 hover:border-emerald-500/70 hover:bg-emerald-950/20 text-left transition-all duration-150 active:scale-[0.99] cursor-pointer">
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-2xl group-hover:scale-110 transition-transform">📈</span>
+            <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-500/30">
+              Señal Favorable
+            </span>
+          </div>
+          <div class="text-base font-extrabold text-white group-hover:text-emerald-300 transition">SUBE el valor</div>
+          <p class="text-xs text-slate-400 mt-1">El mercado interpreta infravaloración o confianza directiva sólida.</p>
+        </button>
+
+        <!-- Opción BAJA -->
+        <button id="btnChoiceDown" onclick="submitAnswer('down')" class="group p-4 sm:p-5 rounded-2xl bg-slate-950 border-2 border-slate-800 hover:border-rose-500/70 hover:bg-rose-950/20 text-left transition-all duration-150 active:scale-[0.99] cursor-pointer">
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-2xl group-hover:scale-110 transition-transform">📉</span>
+            <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-rose-950/80 text-rose-400 border border-rose-500/30">
+              Señal Desfavorable
+            </span>
+          </div>
+          <div class="text-base font-extrabold text-white group-hover:text-rose-300 transition">BAJA el valor</div>
+          <p class="text-xs text-slate-400 mt-1">El mercado interpreta deterioro de expectativas o mayor riesgo.</p>
+        </button>
+
+      </div>
+
+      <!-- Panel de Justificación: Estrictamente oculto hasta que el alumno vote -->
+      <div id="feedbackPanel" class="hidden mt-6 pt-5 border-t border-slate-800 animate-fade-in space-y-4">
+        
+        <!-- Banner de Acierto o Fallo -->
+        <div id="feedbackBanner" class="p-3.5 rounded-2xl flex items-center justify-between flex-wrap gap-2">
+          <div class="flex items-center gap-2.5">
+            <span id="feedbackIcon" class="text-2xl">🎯</span>
+            <div>
+              <h3 id="feedbackTitle" class="text-sm font-black">¡Respuesta Correcta!</h3>
+              <p id="feedbackSubtitle" class="text-xs opacity-90">+100 puntos</p>
+            </div>
+          </div>
+          <span id="feedbackVerdictPill" class="text-xs font-black uppercase tracking-wider px-3 py-1 rounded-full border">
+            Veredicto: SUBE
+          </span>
+        </div>
+
+        <!-- Justificación Teórica y Principio Financiero Clave -->
+        <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800/90 text-xs sm:text-sm text-slate-300 leading-relaxed space-y-3">
+          <div>
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1 flex items-center gap-1.5">
+              <span>💡</span> Justificación y Mecanismo:
+            </h4>
+            <p id="feedbackExplanation" class="text-slate-300"></p>
+          </div>
+
+          <div class="pt-2.5 border-t border-slate-800/80">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-indigo-400 mb-1 flex items-center gap-1.5">
+              <span>📚</span> Principio Financiero Clave:
+            </h4>
+            <p id="feedbackPrinciple" class="text-indigo-200 font-medium"></p>
+          </div>
+        </div>
+
+        <!-- Botón de Continuar -->
+        <div class="flex justify-end pt-2">
+          <button id="btnContinue" onclick="handleContinue()" class="w-full sm:w-auto px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30 transition transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer">
+            <span id="btnContinueText">Continuar</span>
+            <span>➔</span>
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Pantalla de Puntuación Final -->
+    <div id="finalScoreCard" class="hidden bg-slate-900/95 rounded-3xl p-6 sm:p-10 border border-slate-800 shadow-2xl text-center animate-fade-in">
+      
+      <div id="finalBadgeIcon" class="h-20 w-20 rounded-3xl bg-indigo-500/20 border-2 border-indigo-500/40 text-indigo-300 flex items-center justify-center text-4xl mx-auto mb-4">
+        🎓
+      </div>
+
+      <h2 class="text-2xl sm:text-3xl font-black text-white tracking-tight mb-1">
+        ¡Práctica Finalizada!
+      </h2>
+      <p class="text-xs sm:text-sm text-slate-400 mb-6">
+        Has completado el análisis de los 4 tipos de emisión de señales financieras.
+      </p>
+
+      <!-- Recuadro de Puntuación -->
+      <div class="max-w-md mx-auto p-5 sm:p-6 rounded-2xl bg-slate-950 border border-slate-800 mb-6 text-center">
+        <div class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Tu Puntuación Obtenida</div>
+        <div class="text-4xl sm:text-5xl font-black text-emerald-400 font-mono" id="finalScorePoints">0</div>
+        <div class="text-xs text-slate-400 mt-1" id="finalAccuracyText">0 de 4 aciertos (0%)</div>
+        
+        <!-- Mensaje pedagógico dinámico según la puntuación -->
+        <div class="mt-4 pt-4 border-t border-slate-800 text-left">
+          <div class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Evaluación del Profesor:</div>
+          <p id="finalFeedbackMessage" class="text-xs sm:text-sm font-medium leading-relaxed"></p>
+        </div>
+      </div>
+
+      <!-- Desglose de Respuestas Individuales -->
+      <div class="text-left max-w-md mx-auto mb-8 space-y-2">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2.5 text-center">
+          Resumen de tus respuestas:
+        </h3>
+        <div id="summaryList" class="space-y-2"></div>
+      </div>
+
+      <!-- Botón Reiniciar Práctica -->
+      <button onclick="restartPractice()" class="px-8 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs sm:text-sm shadow-lg shadow-indigo-600/30 transition transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer">
+        Volver a Intentar 🔄
+      </button>
+
+    </div>
+
+  </main>
+
+  <script>
+    /* Los 4 Casos Oficiales de Señalización Financiera */
+    const SCENARIOS = [
+      {
+        id: "signal-financing",
+        category: "1. Decisiones de Financiación",
+        title: "Emisión de Deuda en lugar de Ampliación de Capital (Nuevas Acciones)",
+        description: 'La corporación industrial "Nortec" necesita captar 200 millones de euros para acometer un proyecto estratégico de expansión. Pudiendo realizar una ampliación de capital emitiendo nuevas acciones, el equipo directivo decide por sorpresa financiarse íntegramente mediante la emisión de bonos y deuda a largo plazo, comprometiéndose contractualmente al pago de intereses periódicos.',
+        expectedVerdict: "up",
+        explanation: 'Según la teoría del orden de preferencia de fuentes de financiación (jerarquía financiera o "Pecking Order", formulada por Myers y Majluf): si los directivos saben que sus acciones están infravaloradas en bolsa, evitarán a toda costa emitir nuevas acciones, ya que perjudicarían y diluirían a los accionistas actuales vendiendo títulos a un precio injustamente bajo. Al optar por emitir deuda, la directiva emite una señal rotunda de que confía plenamente en generar flujos de caja suficientes para pagar los intereses y la amortización, asumiendo un compromiso formal que una empresa con problemas no se atrevería a contraer.',
+        principle: 'Equilibrio Separador ("Separating Equilibrium"): Las empresas solventes y de alta calidad pueden comprometerse contractualmente a pagar deuda sin riesgo de insolvencia. Las empresas con malos proyectos o débil rentabilidad no pueden imitar esta señal sin exponerse a la quiebra.'
+      },
+      {
+        id: "signal-investment",
+        category: "2. Decisiones de Inversión",
+        title: "Desembolso Récord en I+D e Instalaciones Productivas",
+        description: 'Una compañía farmacéutica anuncia un plan de inversión en capital productivo (inversión en activos fijos e instalaciones) de 450 millones de euros financiado con fondos propios para patentar y producir un tratamiento oncológico pionero con un Valor Actual Neto (VAN) estimado fuertemente positivo.',
+        expectedVerdict: "up",
+        explanation: 'Inmovilizar un volumen tan alto de recursos propios en proyectos de inversión irreversible con Valor Actual Neto (VAN) fuertemente positivo señala al mercado la posesión de ventajas competitivas sólidas y altas expectativas de rentabilidad futura. Una empresa con malas perspectivas operativas no se arriesgaría a dilapidar su liquidez en un proyecto de esa escala.',
+        principle: 'Coste de Señalización Creíble: El compromiso de capital irreversible actúa como una barrera de credibilidad que las empresas de baja calidad no pueden permitirse imitar.'
+      },
+      {
+        id: "signal-rating",
+        category: "3. Agencias de Calificación Crediticia (Rating)",
+        title: "Revisión de Calificación Crediticia a Perspectiva Negativa con Riesgo de Bono Especulativo",
+        description: 'La agencia de calificación crediticia Standard & Poor\'s (S&P) sitúa la solvencia de una empresa en vigilancia con perspectiva negativa (nota BBB-), advirtiendo de una inminente rebaja al escalón especulativo (los comúnmente llamados "bonos basura" o deuda de alto riesgo) por el excesivo aumento de su endeudamiento.',
+        expectedVerdict: "down",
+        explanation: 'Las agencias de calificación crediticia actúan como certificadores independientes especializados que reducen la asimetría informativa entre la empresa y el mercado. La advertencia de una degradación a bono especulativo alerta sobre un mayor riesgo de impago, lo que eleva la prima de riesgo exigida, encarece el coste de la deuda y dispara el Coste Medio Ponderado del Capital (WACC), reduciendo directamente el valor actual de los flujos futuros de la empresa.',
+        principle: 'Certificación de Terceros y Prima de Riesgo: La señal desfavorable encarece la financiación externa y fuerza la venta de títulos por parte de grandes fondos institucionales con mandatos estrictos que les impiden mantener deuda de baja calidad.'
+      },
+      {
+        id: "signal-news",
+        category: "4. Noticias Positivas vs. Negativas",
+        title: "Aviso de Advertencia de Resultados ('Profit Warning') y Rebaja de Beneficios Previstos",
+        description: 'La dirección de la compañía emite un hecho relevante imprevisto informando oficialmente de que su beneficio operativo del próximo trimestre se situará un 35% por debajo de las estimaciones del consenso de analistas, debido a una brusca e inesperada caída en los pedidos de sus clientes.',
+        expectedVerdict: "down",
+        explanation: 'La divulgación oficial de noticias operativas negativas destruye de golpe las expectativas favorables del mercado. Los inversores reajustan a la baja las previsiones de flujos de caja futuros y reducen los múltiplos de valoración que están dispuestos a pagar (como el ratio Precio/Beneficio o el múltiplo sobre beneficios operativos), provocando ventas inmediatas y la consiguiente depreciación del valor bursátil.',
+        principle: 'Transparencia y Asimetría Informativa: La señal negativa sobre la marcha del negocio reajusta instantáneamente a la baja las expectativas de los inversores, forzando una corrección en el precio de la empresa.'
+      }
+    ];
+
+    /* Variables de Estado del Alumno */
+    let currentIndex = 0;
+    let totalScore = 0;
+    let answersLog = [];
+    let hasAnsweredCurrent = false;
+
+    function loadCurrentScenario() {
+      hasAnsweredCurrent = false;
+      const scenario = SCENARIOS[currentIndex];
+
+      // Actualizar progreso
+      document.getElementById('progressStepText').textContent = `Caso ${currentIndex + 1} de ${SCENARIOS.length}`;
+      document.getElementById('progressCategoryText').textContent = scenario.category;
+      document.getElementById('progressBarFill').style.width = `${((currentIndex + 1) / SCENARIOS.length) * 100}%`;
+
+      // Cargar contenidos del caso
+      document.getElementById('badgeCategory').textContent = scenario.category;
+      document.getElementById('scenarioTitle').textContent = scenario.title;
+      document.getElementById('scenarioDescription').textContent = scenario.description;
+
+      // Restablecer estilos de botones de votación
+      const btnUp = document.getElementById('btnChoiceUp');
+      const btnDown = document.getElementById('btnChoiceDown');
+
+      btnUp.disabled = false;
+      btnDown.disabled = false;
+      btnUp.className = 'group p-4 sm:p-5 rounded-2xl bg-slate-950 border-2 border-slate-800 hover:border-emerald-500/70 hover:bg-emerald-950/20 text-left transition-all duration-150 active:scale-[0.99] cursor-pointer';
+      btnDown.className = 'group p-4 sm:p-5 rounded-2xl bg-slate-950 border-2 border-slate-800 hover:border-rose-500/70 hover:bg-rose-950/20 text-left transition-all duration-150 active:scale-[0.99] cursor-pointer';
+
+      // La justificación permanece estrictamente oculta hasta que el alumno responda
+      document.getElementById('feedbackPanel').classList.add('hidden');
+
+      // Texto dinámico para el botón de continuar
+      const btnContinueText = document.getElementById('btnContinueText');
+      if (currentIndex === SCENARIOS.length - 1) {
+        btnContinueText.textContent = 'Continuar a ver la puntuación';
+      } else {
+        btnContinueText.textContent = 'Continuar al siguiente caso';
+      }
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function submitAnswer(chosen) {
+      if (hasAnsweredCurrent) return;
+      hasAnsweredCurrent = true;
+
+      const scenario = SCENARIOS[currentIndex];
+      const isCorrect = (chosen === scenario.expectedVerdict);
+
+      // Bloquear los botones de forma irrevocable
+      const btnUp = document.getElementById('btnChoiceUp');
+      const btnDown = document.getElementById('btnChoiceDown');
+      btnUp.disabled = true;
+      btnDown.disabled = true;
+      btnUp.classList.remove('cursor-pointer');
+      btnDown.classList.remove('cursor-pointer');
+
+      // Resaltar la opción seleccionada por el estudiante
+      if (chosen === 'up') {
+        btnUp.classList.add('ring-2', isCorrect ? 'ring-emerald-400' : 'ring-rose-400');
+      } else {
+        btnDown.classList.add('ring-2', isCorrect ? 'ring-emerald-400' : 'ring-rose-400');
+      }
+
+      // Sumar puntuación
+      if (isCorrect) {
+        totalScore += 100;
+        document.getElementById('headerScore').textContent = totalScore;
+      }
+
+      // Guardar registro para el desglose final
+      answersLog.push({
+        scenario: scenario,
+        chosen: chosen,
+        isCorrect: isCorrect
+      });
+
+      // Configurar banner de acierto/fallo
+      const feedbackBanner = document.getElementById('feedbackBanner');
+      const feedbackIcon = document.getElementById('feedbackIcon');
+      const feedbackTitle = document.getElementById('feedbackTitle');
+      const feedbackSubtitle = document.getElementById('feedbackSubtitle');
+      const feedbackVerdictPill = document.getElementById('feedbackVerdictPill');
+
+      if (isCorrect) {
+        feedbackBanner.className = 'p-3.5 rounded-2xl flex items-center justify-between flex-wrap gap-2 bg-emerald-950/70 border border-emerald-500/50 text-emerald-200';
+        feedbackIcon.textContent = '🎯';
+        feedbackTitle.textContent = '¡Respuesta Correcta!';
+        feedbackSubtitle.textContent = '+100 puntos obtenidos';
+        feedbackVerdictPill.className = 'text-xs font-black uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-900 text-emerald-300 border border-emerald-500/40';
+      } else {
+        feedbackBanner.className = 'p-3.5 rounded-2xl flex items-center justify-between flex-wrap gap-2 bg-rose-950/70 border border-rose-500/50 text-rose-200';
+        feedbackIcon.textContent = '❌';
+        feedbackTitle.textContent = 'Respuesta Incorrecta';
+        feedbackSubtitle.textContent = '0 puntos en este caso';
+        feedbackVerdictPill.className = 'text-xs font-black uppercase tracking-wider px-3 py-1 rounded-full bg-rose-900 text-rose-300 border border-rose-500/40';
+      }
+
+      feedbackVerdictPill.textContent = scenario.expectedVerdict === 'up' ? 'Veredicto: SUBE' : 'Veredicto: BAJA';
+      document.getElementById('feedbackExplanation').textContent = scenario.explanation;
+      document.getElementById('feedbackPrinciple').textContent = scenario.principle;
+
+      // Mostrar la justificación solo tras haber contestado
+      document.getElementById('feedbackPanel').classList.remove('hidden');
+    }
+
+    function handleContinue() {
+      if (currentIndex < SCENARIOS.length - 1) {
+        currentIndex++;
+        loadCurrentScenario();
+      } else {
+        showFinalResults();
+      }
+    }
+
+    function showFinalResults() {
+      document.getElementById('quizCard').classList.add('hidden');
+      document.getElementById('progressSection').classList.add('hidden');
+      document.getElementById('finalScoreCard').classList.remove('hidden');
+
+      const correctCount = answersLog.filter(a => a.isCorrect).length;
+      const percentage = Math.round((correctCount / SCENARIOS.length) * 100);
+
+      document.getElementById('finalScorePoints').textContent = totalScore;
+      document.getElementById('finalAccuracyText').textContent = `${correctCount} de ${SCENARIOS.length} aciertos (${percentage}%)`;
+
+      // Mensajes diferenciados según la puntuación obtenida
+      const feedbackMsg = document.getElementById('finalFeedbackMessage');
+      const badgeIcon = document.getElementById('finalBadgeIcon');
+
+      if (totalScore === 400) {
+        badgeIcon.textContent = '🏆';
+        badgeIcon.className = 'h-20 w-20 rounded-3xl bg-emerald-500/20 border-2 border-emerald-500/40 text-emerald-300 flex items-center justify-center text-4xl mx-auto mb-4';
+        feedbackMsg.innerHTML = '<span class="text-emerald-400 font-bold block mb-1">¡Excelente dominio de la materia! (Puntuación perfecta)</span>Has interiorizado plenamente los mecanismos de asimetría informativa: comprendes por qué emitir deuda en lugar de nuevas acciones señala confianza directiva según el modelo de jerarquía financiera (Pecking Order de Myers y Majluf), cómo el desembolso en activos con Valor Actual Neto (VAN) positivo establece un equilibrio separador creíble, el papel certificador de solvencia de las agencias de calificación crediticia sobre el Coste Medio Ponderado del Capital (WACC) y el ajuste a la baja en el valor ante advertencias de resultados negativos.';
+      } else if (totalScore === 300) {
+        badgeIcon.textContent = '🌟';
+        badgeIcon.className = 'h-20 w-20 rounded-3xl bg-indigo-500/20 border-2 border-indigo-500/40 text-indigo-300 flex items-center justify-center text-4xl mx-auto mb-4';
+        feedbackMsg.innerHTML = '<span class="text-indigo-400 font-bold block mb-1">¡Muy buen resultado!</span>Demuestras un criterio financiero sólido sobre la emisión de señales en el mercado. Has identificado la gran mayoría de equilibrios separadores. Revisa el caso que se te ha resistido para consolidar cómo afecta directamente al Coste Medio Ponderado del Capital (WACC) o a los múltiplos de valoración de la empresa.';
+      } else if (totalScore === 200) {
+        badgeIcon.textContent = '💡';
+        badgeIcon.className = 'h-20 w-20 rounded-3xl bg-amber-500/20 border-2 border-amber-500/40 text-amber-300 flex items-center justify-center text-4xl mx-auto mb-4';
+        feedbackMsg.innerHTML = '<span class="text-amber-400 font-bold block mb-1">Comprensión intermedia</span>Tienes una noción intuitiva del mercado, pero has dudado en la interpretación de señales clave. Recuerda la regla fundamental: una señal solo es creíble y eleva el valor de la empresa si supone un coste real o un compromiso contractual (como el pago periódico de deuda) que las compañías con dificultades financieras no pueden permitirse imitar.';
+      } else {
+        badgeIcon.textContent = '📖';
+        badgeIcon.className = 'h-20 w-20 rounded-3xl bg-rose-500/20 border-2 border-rose-500/40 text-rose-300 flex items-center justify-center text-4xl mx-auto mb-4';
+        feedbackMsg.innerHTML = '<span class="text-rose-400 font-bold block mb-1">Recomendable repasar la teoría</span>Es importante revisar los conceptos de asimetría de información y selección adversa. Recuerda que el mercado penaliza el aumento del riesgo financiero (como la advertencia de caída a bono especulativo o una rebaja imprevista de previsiones de resultados) y premia aquellas decisiones donde la dirección se compromete con recursos propios o deuda demostrando firme convicción.';
+      }
+
+      // Desglose de cada caso
+      const summaryList = document.getElementById('summaryList');
+      summaryList.innerHTML = answersLog.map((log, idx) => {
+        const icon = log.isCorrect ? '✅' : '❌';
+        const expected = log.scenario.expectedVerdict === 'up' ? 'SUBE' : 'BAJA';
+        const userChoice = log.chosen === 'up' ? 'SUBE' : 'BAJA';
+
+        return `
+          <div class="p-3 rounded-xl ${log.isCorrect ? 'bg-emerald-950/30 border border-emerald-500/30' : 'bg-rose-950/30 border border-rose-500/30'} flex items-start justify-between gap-3 text-xs">
+            <div>
+              <div class="font-bold text-white flex items-center gap-1.5 mb-0.5">
+                <span>${icon}</span>
+                <span>Caso ${idx + 1}: ${log.scenario.category.replace(/^[0-9.]+\s*/, '')}</span>
+              </div>
+              <div class="text-slate-400 text-[11px]">
+                Tu voto: <strong class="${log.isCorrect ? 'text-emerald-300' : 'text-rose-300'}">${userChoice}</strong> | Correcta: <strong class="text-white">${expected}</strong>
+              </div>
+            </div>
+            <span class="font-mono font-bold ${log.isCorrect ? 'text-emerald-400' : 'text-slate-500'} shrink-0 text-xs">
+              ${log.isCorrect ? '+100 pts' : '+0 pts'}
+            </span>
+          </div>
+        `;
+      }).join('');
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function restartPractice() {
+      currentIndex = 0;
+      totalScore = 0;
+      answersLog = [];
+      hasAnsweredCurrent = false;
+
+      document.getElementById('headerScore').textContent = '0';
+      document.getElementById('finalScoreCard').classList.add('hidden');
+      document.getElementById('quizCard').classList.remove('hidden');
+      document.getElementById('progressSection').classList.remove('hidden');
+
+      loadCurrentScenario();
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadCurrentScenario();
+    });
+  </script>
+</body>
+</html>
