@@ -2,6 +2,15 @@
 
 Herramientas para la asignatura de matemáticas financieras
 
+# Calculadora valor inflación: 
+https://evarmprof.github.io/mates_financieras/calculadora_valor_inflacion.html
+# Simulador de señales financieras: 
+https://evarmprof.github.io/mates_financieras/simulador_se_ales_financieras.html
+# Gráfico Valor actual: 
+https://evarmprof.github.io/mates_financieras/grafico_valor_actual.html
+# Interés periódico_TAE: 
+https://evarmprof.github.io/mates_financieras/interes periodico_TAE.html
+
 
 # Primera herramienta: calculadora de inflación
 Una herramienta simple para visualizar cómo la inflación afecta el poder adquisitivo del dinero a lo largo del tiempo.
